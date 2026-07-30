@@ -16,6 +16,8 @@ import { useCrowdPrediction } from '@/hooks/useCrowdPrediction';
 import PredictionSummary from '@/components/prediction/PredictionSummary';
 import PredictionAlerts from '@/components/prediction/PredictionAlerts';
 import { Brain } from 'lucide-react';
+import ConnectionStatus from '@/components/realtime/ConnectionStatus';
+import SystemHealthCard from '@/components/realtime/SystemHealthCard';
 
 interface DashboardData {
   statCardsData: StatCardData[];
@@ -187,6 +189,12 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Socket Infrastructure Status */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ConnectionStatus showDetails={true} />
+            <SystemHealthCard compact={true} />
           </div>
         </main>
       </div>
