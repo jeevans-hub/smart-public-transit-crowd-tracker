@@ -32,3 +32,60 @@ export const COOKIE_CONFIG = {
     maxAge: 60 * 60 * 24 * 7, // 7 days
   },
 } as const;
+
+export const CROWD_LEVELS = {
+  EMPTY: 'EMPTY',
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  FULL: 'FULL',
+} as const;
+
+export const REPORT_SOURCES = {
+  USER: 'USER',
+  STAFF: 'STAFF',
+  SYSTEM: 'SYSTEM',
+} as const;
+
+export const CROWD_LEVEL_COLORS = {
+  EMPTY: {
+    bg: 'bg-gray-100',
+    text: 'text-gray-700',
+    border: 'border-gray-300',
+    badge: 'bg-gray-200 text-gray-800',
+  },
+  LOW: {
+    bg: 'bg-green-100',
+    text: 'text-green-700',
+    border: 'border-green-300',
+    badge: 'bg-green-200 text-green-800',
+  },
+  MEDIUM: {
+    bg: 'bg-yellow-100',
+    text: 'text-yellow-700',
+    border: 'border-yellow-300',
+    badge: 'bg-yellow-200 text-yellow-800',
+  },
+  HIGH: {
+    bg: 'bg-orange-100',
+    text: 'text-orange-700',
+    border: 'border-orange-300',
+    badge: 'bg-orange-200 text-orange-800',
+  },
+  FULL: {
+    bg: 'bg-red-100',
+    text: 'text-red-700',
+    border: 'border-red-300',
+    badge: 'bg-red-200 text-red-800',
+  },
+} as const;
+
+export const CROWD_THRESHOLDS = {
+  EMPTY: 0,
+  LOW: 25,
+  MEDIUM: 50,
+  HIGH: 75,
+  FULL: 100,
+} as const;
+
+export const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds

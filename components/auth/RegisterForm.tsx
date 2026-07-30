@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 interface RegisterFormProps {
@@ -10,6 +11,7 @@ interface RegisterFormProps {
 
 export default function RegisterForm({ onClose, onLoginClick }: RegisterFormProps) {
   const { register } = useAuth();
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,9 +41,12 @@ export default function RegisterForm({ onClose, onLoginClick }: RegisterFormProp
     setLoading(true);
 
     try {
+      console.log('[RegisterForm] Submitting registration for:', { username, email });
       await register(username, email, password);
-      onClose();
+      console.log('[RegisterForm] Registration succeeded!');
+      router.push('/dashboard');
     } catch (err: any) {
+      console.error('[RegisterForm Error Caught]:', err);
       setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);

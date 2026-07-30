@@ -1,131 +1,97 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import DashboardStats from '@/components/dashboard/DashboardStats';
-import { Building2, MapPin, Route, Car } from 'lucide-react';
+import Navbar from '@/components/dashboard/Navbar';
+import Sidebar from '@/components/dashboard/Sidebar';
+import StatisticCard from '@/components/dashboard/StatisticCard';
+import AnalyticsCharts from '@/components/dashboard/AnalyticsCharts';
+import CrowdGauge from '@/components/dashboard/CrowdGauge';
+import LiveTable from '@/components/dashboard/LiveTable';
+import AlertPanel from '@/components/dashboard/AlertPanel';
+import MapPlaceholder from '@/components/dashboard/MapPlaceholder';
+import ActivityTimeline from '@/components/dashboard/ActivityTimeline';
+import {
+  statCardsData,
+  passengerCountData,
+  vehicleOccupancyData,
+  peakHoursData,
+  crowdDistributionData,
+  stationUtilizationData,
+  liveCrowdData,
+  liveAlertsData,
+  activityTimelineData,
+  mapMarkersData,
+  crowdGaugeValues,
+} from '@/data/dashboard';
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({
-    agencies: 0,
-    stations: 0,
-    routes: 0,
-    vehicles: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const [agenciesRes, stationsRes, routesRes, vehiclesRes] = await Promise.all([
-          fetch('/api/agencies'),
-          fetch('/api/stations'),
-          fetch('/api/routes'),
-          fetch('/api/vehicles'),
-        ]);
-
-        const agencies = agenciesRes.ok ? await agenciesRes.json() : { data: [] };
-        const stations = stationsRes.ok ? await stationsRes.json() : { data: [] };
-        const routes = routesRes.ok ? await routesRes.json() : { data: [] };
-        const vehicles = vehiclesRes.ok ? await vehiclesRes.json() : { data: [] };
-
-        setStats({
-          agencies: agencies.data?.length || 0,
-          stations: stations.data?.length || 0,
-          routes: routes.data?.length || 0,
-          vehicles: vehicles.data?.length || 0,
-        });
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchStats();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  const statCards = [
-    {
-      title: 'Total Agencies',
-      value: stats.agencies,
-      icon: Building2,
-      color: 'blue' as const,
-    },
-    {
-      title: 'Total Stations',
-      value: stats.stations,
-      icon: MapPin,
-      color: 'green' as const,
-    },
-    {
-      title: 'Total Routes',
-      value: stats.routes,
-      icon: Route,
-      color: 'purple' as const,
-    },
-    {
-      title: 'Total Vehicles',
-      value: stats.vehicles,
-      icon: Car,
-      color: 'orange' as const,
-    },
-  ];
-
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
-      <DashboardStats stats={statCards} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Welcome to Transit Tracker</h2>
-          <p className="text-gray-600">
-            Manage your public transit system efficiently. Track agencies, stations, routes, and vehicles 
-            all in one place. Use the navigation to explore different sections.
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="space-y-3">
-            <a
-              href="/dashboard/agencies"
-              className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <p className="font-medium text-gray-900">Manage Agencies</p>
-              <p className="text-sm text-gray-600">Add and edit transit agencies</p>
-            </a>
-            <a
-              href="/dashboard/stations"
-              className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <p className="font-medium text-gray-900">Manage Stations</p>
-              <p className="text-sm text-gray-600">Configure transit stations</p>
-            </a>
-            <a
-              href="/dashboard/routes"
-              className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <p className="font-medium text-gray-900">Manage Routes</p>
-              <p className="text-sm text-gray-600">Define transit routes</p>
-            </a>
-            <a
-              href="/dashboard/vehicles"
-              className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <p className="font-medium text-gray-900">Manage Vehicles</p>
-              <p className="text-sm text-gray-600">Track fleet vehicles</p>
-            </a>
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar />
+      <div className="lg:ml-72">
+        <Navbar />
+        <main className="p-6">
+          {/* Page Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
+            <p className="text-gray-600 mt-1">Real-time transit crowd monitoring and analytics</p>
           </div>
-        </div>
+
+          {/* Statistic Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+            {statCardsData.map((stat, index) => (
+              <StatisticCard
+                key={index}
+                title={stat.title}
+                value={stat.value}
+                change={stat.change}
+                icon={stat.icon}
+              />
+            ))}
+          </div>
+
+          {/* Crowd Gauges */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Live Crowd Levels</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {crowdGaugeValues.map((value, index) => (
+                <CrowdGauge key={index} value={value} />
+              ))}
+            </div>
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <AnalyticsCharts
+              passengerData={passengerCountData}
+              occupancyData={vehicleOccupancyData}
+              peakHoursData={peakHoursData}
+              distributionData={crowdDistributionData}
+              utilizationData={stationUtilizationData}
+            />
+            <div className="space-y-6">
+              <AlertPanel alerts={liveAlertsData} />
+              <ActivityTimeline activities={activityTimelineData} />
+            </div>
+          </div>
+
+          {/* Live Table and Map */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <LiveTable data={liveCrowdData} />
+            <MapPlaceholder markers={mapMarkersData} />
+          </div>
+
+          {/* Station Utilization Chart */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Station Utilization</h3>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {stationUtilizationData.map((station, index) => (
+                <div key={index} className="text-center">
+                  <CrowdGauge value={station.value} label={station.name} size={100} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );

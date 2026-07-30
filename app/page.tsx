@@ -1,14 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
-import UserProfile from '@/components/auth/UserProfile';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Home() {
   const { currentUser, loading } = useAuth();
+  const router = useRouter();
   const [authView, setAuthView] = useState<'login' | 'register' | null>(null);
+
+  useEffect(() => {
+    if (currentUser) {
+      router.push('/dashboard');
+    }
+  }, [currentUser, router]);
 
   if (loading) {
     return (
@@ -20,8 +27,8 @@ export default function Home() {
 
   if (currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-        <UserProfile user={currentUser} />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="text-white text-xl">Redirecting to dashboard...</div>
       </div>
     );
   }

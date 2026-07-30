@@ -8,9 +8,11 @@ import { isValidEmail } from '@/utils/helpers';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('[API Register] Request body received:', body);
     const { username, email, password } = body;
 
     if (!username || !email || !password) {
+      console.log('[API Register] Validation failed: Missing required fields');
       return NextResponse.json(
         { success: false, error: 'All fields are required' },
         { status: 400 }
@@ -18,6 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (username.length < 3) {
+      console.log('[API Register] Validation failed: Username too short');
       return NextResponse.json(
         { success: false, error: 'Username must be at least 3 characters' },
         { status: 400 }
@@ -25,6 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isValidEmail(email)) {
+      console.log('[API Register] Validation failed: Invalid email format');
       return NextResponse.json(
         { success: false, error: 'Invalid email address' },
         { status: 400 }
@@ -32,16 +36,20 @@ export async function POST(request: NextRequest) {
     }
 
     if (password.length < 6) {
+      console.log('[API Register] Validation failed: Password too short');
       return NextResponse.json(
         { success: false, error: 'Password must be at least 6 characters' },
         { status: 400 }
       );
     }
 
+    console.log('[API Register] Calling connectDB()...');
     await connectDB();
+    console.log('[API Register] connectDB() succeeded.');
 
     const existingUserByEmail = await findByEmail(email);
     if (existingUserByEmail) {
+      console.log('[API Register] User with email already exists');
       return NextResponse.json(
         { success: false, error: 'User with this email already exists' },
         { status: 409 }
@@ -50,14 +58,19 @@ export async function POST(request: NextRequest) {
 
     const existingUserByUsername = await findByUsername(username);
     if (existingUserByUsername) {
+      console.log('[API Register] Username already taken');
       return NextResponse.json(
         { success: false, error: 'Username already taken' },
         { status: 409 }
       );
     }
 
+    console.log('[API Register] Hashing password...');
     const passwordHash = await hashPassword(password);
+    console.log('[API Register] Password hashed. Before saving user...');
+
     const user = await createUser({ username, email, passwordHash });
+    console.log('[API Register] User saved successfully. User ID:', user._id.toString());
 
     const token = generateToken(user._id.toString());
 
@@ -79,9 +92,10 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('[API Register Catch Error]:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, error: 'Registration failed' },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }
