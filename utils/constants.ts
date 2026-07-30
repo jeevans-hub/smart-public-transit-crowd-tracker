@@ -88,4 +88,4 @@ export const CROWD_THRESHOLDS = {
   FULL: 100,
 } as const;
 
-export const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
+export const AUTO_REFRESH_INTERVAL = 15000; // 15 seconds

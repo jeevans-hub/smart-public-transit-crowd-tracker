@@ -1,6 +1,6 @@
 import CrowdReport from '@/models/CrowdReport';
 import { ICrowdReportDocument, ICrowdReportResponse, ICrowdStatistics, IVehicleOccupancy, IStationOccupancy, IRouteOccupancy, CrowdLevel } from '@/types/crowd';
-import { CROWD_THRESHOLDS } from '@/utils/constants';
+import { calculateOccupancyPercentage, calculateCrowdLevel as calcCrowdLevel, calculateAverageOccupancy } from '@/utils/crowdCalculator';
 
 export async function createCrowdReport(data: {
   vehicleId: string;
@@ -12,7 +12,7 @@ export async function createCrowdReport(data: {
   vehicleCapacity: number;
   reportSource: 'USER' | 'STAFF' | 'SYSTEM';
 }): Promise<ICrowdReportDocument> {
-  const occupancyPercentage = Math.round((data.passengerCount / data.vehicleCapacity) * 100);
+  const occupancyPercentage = calculateOccupancyPercentage(data.passengerCount, data.vehicleCapacity);
   
   const report = new CrowdReport({
     ...data,
@@ -50,8 +50,7 @@ export async function getStationOccupancy(stationId: string): Promise<IStationOc
   
   if (reports.length === 0) return null;
   
-  const totalOccupancy = reports.reduce((sum, r) => sum + r.occupancyPercentage, 0);
-  const averageOccupancy = Math.round(totalOccupancy / reports.length);
+  const averageOccupancy = calculateAverageOccupancy(reports.map(r => r.occupancyPercentage));
   
   return {
     stationId,
@@ -66,8 +65,7 @@ export async function getRouteOccupancy(routeId: string): Promise<IRouteOccupanc
   
   if (reports.length === 0) return null;
   
-  const totalOccupancy = reports.reduce((sum, r) => sum + r.occupancyPercentage, 0);
-  const averageOccupancy = Math.round(totalOccupancy / reports.length);
+  const averageOccupancy = calculateAverageOccupancy(reports.map(r => r.occupancyPercentage));
   
   return {
     routeId,
@@ -98,8 +96,7 @@ export async function getAverageOccupancy(filters?: {
   
   if (reports.length === 0) return 0;
   
-  const totalOccupancy = reports.reduce((sum, r) => sum + r.occupancyPercentage, 0);
-  return Math.round(totalOccupancy / reports.length);
+  return calculateAverageOccupancy(reports.map(r => r.occupancyPercentage));
 }
 
 export async function getRecentReports(limit: number = 20): Promise<ICrowdReportDocument[]> {
@@ -211,9 +208,5 @@ export function toCrowdReportResponse(report: ICrowdReportDocument): ICrowdRepor
 }
 
 export function calculateCrowdLevel(occupancyPercentage: number): CrowdLevel {
-  if (occupancyPercentage <= CROWD_THRESHOLDS.EMPTY) return 'EMPTY';
-  if (occupancyPercentage <= CROWD_THRESHOLDS.LOW) return 'LOW';
-  if (occupancyPercentage <= CROWD_THRESHOLDS.MEDIUM) return 'MEDIUM';
-  if (occupancyPercentage <= CROWD_THRESHOLDS.HIGH) return 'HIGH';
-  return 'FULL';
+  return calcCrowdLevel(occupancyPercentage);
 }
