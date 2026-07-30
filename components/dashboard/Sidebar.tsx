@@ -9,7 +9,8 @@ import {
   Car, 
   Menu,
   X,
-  ChevronDown
+  ChevronDown,
+  Brain
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,6 +27,12 @@ const navItems = [
     label: 'Live Crowd', 
     icon: Bus,
     description: 'Real-time crowd monitoring'
+  },
+  { 
+    href: '/dashboard/predictions', 
+    label: 'AI Predictions', 
+    icon: Brain,
+    description: 'Crowd forecasting engine'
   },
   { 
     href: '/dashboard/stations', 

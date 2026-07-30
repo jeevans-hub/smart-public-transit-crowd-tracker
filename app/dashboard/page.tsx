@@ -12,6 +12,10 @@ import MapPlaceholder from '@/components/dashboard/MapPlaceholder';
 import ActivityTimeline from '@/components/dashboard/ActivityTimeline';
 import LoadingSpinner from '@/components/dashboard/LoadingSpinner';
 import { StatCardData, CrowdData, AlertData, ActivityData, ChartData, MapMarker } from '@/data/dashboard';
+import { useCrowdPrediction } from '@/hooks/useCrowdPrediction';
+import PredictionSummary from '@/components/prediction/PredictionSummary';
+import PredictionAlerts from '@/components/prediction/PredictionAlerts';
+import { Brain } from 'lucide-react';
 
 interface DashboardData {
   statCardsData: StatCardData[];
@@ -31,6 +35,10 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { predictions: predictionData, loading: predictionsLoading } = useCrowdPrediction({
+    autoRefresh: true,
+    refreshInterval: 30000,
+  });
 
   const fetchDashboardData = async () => {
     try {
@@ -146,6 +154,20 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <AlertPanel alerts={data.liveAlertsData} />
               <ActivityTimeline activities={data.activityTimelineData} />
+            </div>
+          </div>
+
+          {/* AI Prediction Section */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Brain className="w-6 h-6 text-purple-600" />
+              <h2 className="text-xl font-semibold text-gray-900">AI Prediction Insights</h2>
+            </div>
+            <div className="mb-4">
+              <PredictionSummary predictions={predictionData} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PredictionAlerts predictions={predictionData} />
             </div>
           </div>
 
