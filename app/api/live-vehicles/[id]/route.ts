@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import { getLiveVehicleById, updateLiveVehicle, deleteLiveVehicle, toLiveVehicleResponse } from '@/services/liveVehicleService';
+import { socketServer } from '@/server/socket';
 
 export async function GET(
   request: NextRequest,
@@ -69,9 +70,27 @@ export async function PUT(
       );
     }
     
+    const responseVehicle = toLiveVehicleResponse(vehicle);
+    
+    // Broadcast vehicle updates via socket
+    if (socketServer.isActive()) {
+      socketServer.broadcastVehicleUpdated(responseVehicle);
+      
+      // Broadcast location change if coordinates changed
+      if (latitude !== undefined || longitude !== undefined) {
+        socketServer.broadcastVehicleLocation(responseVehicle);
+        socketServer.broadcastVehicleMoved(responseVehicle);
+      }
+      
+      // Broadcast status change if status changed
+      if (status !== undefined) {
+        socketServer.broadcastVehicleStatus(responseVehicle);
+      }
+    }
+    
     return NextResponse.json({ 
       success: true, 
-      data: toLiveVehicleResponse(vehicle) 
+      data: responseVehicle 
     });
   } catch (error) {
     return NextResponse.json(
@@ -96,6 +115,11 @@ export async function DELETE(
         { success: false, error: 'Vehicle not found' },
         { status: 404 }
       );
+    }
+    
+    // Broadcast vehicle deletion via socket
+    if (socketServer.isActive()) {
+      socketServer.broadcastVehicleDeleted(id);
     }
     
     return NextResponse.json({ 

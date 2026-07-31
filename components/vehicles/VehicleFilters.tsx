@@ -12,10 +12,10 @@ interface VehicleFiltersProps {
   onRouteChange: (value: string) => void;
   vehicleType: string;
   onVehicleTypeChange: (value: string) => void;
-  sortField: 'vehicleNumber' | 'speed' | 'currentPassengers' | 'lastUpdated';
-  onSortFieldChange: (value: 'vehicleNumber' | 'speed' | 'currentPassengers' | 'lastUpdated') => void;
-  sortOrder: 'asc' | 'desc';
-  onSortOrderChange: (value: 'asc' | 'desc') => void;
+  sortField?: 'vehicleNumber' | 'speed' | 'currentPassengers' | 'lastUpdated';
+  onSortFieldChange?: (value: 'vehicleNumber' | 'speed' | 'currentPassengers' | 'lastUpdated') => void;
+  sortOrder?: 'asc' | 'desc';
+  onSortOrderChange?: (value: 'asc' | 'desc') => void;
 }
 
 export default function VehicleFilters({
@@ -87,29 +87,31 @@ export default function VehicleFilters({
         />
       </div>
 
-      <div className="pt-4 border-t">
-        <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-        <div className="flex gap-2">
-          <select
-            value={sortField}
-            onChange={(e) => onSortFieldChange(e.target.value as any)}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="lastUpdated">Last Updated</option>
-            <option value="vehicleNumber">Vehicle Number</option>
-            <option value="speed">Speed</option>
-            <option value="currentPassengers">Passengers</option>
-          </select>
-          <select
-            value={sortOrder}
-            onChange={(e) => onSortOrderChange(e.target.value as 'asc' | 'desc')}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="desc">Descending</option>
-            <option value="asc">Ascending</option>
-          </select>
+      {sortField && onSortFieldChange && sortOrder && onSortOrderChange && (
+        <div className="pt-4 border-t">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+          <div className="flex gap-2">
+            <select
+              value={sortField}
+              onChange={(e) => onSortFieldChange(e.target.value as any)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="lastUpdated">Last Updated</option>
+              <option value="vehicleNumber">Vehicle Number</option>
+              <option value="speed">Speed</option>
+              <option value="currentPassengers">Passengers</option>
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => onSortOrderChange(e.target.value as 'asc' | 'desc')}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

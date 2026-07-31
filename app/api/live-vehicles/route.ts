@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import { getAllLiveVehicles, createLiveVehicle, getLiveVehicleStatistics, toLiveVehicleResponse, simulateVehicleMovement } from '@/services/liveVehicleService';
 import { ILiveVehicleFilters, ILiveVehicleSort } from '@/types/vehicle';
+import { socketServer } from '@/server/socket';
 
 export async function GET(request: NextRequest) {
   try {
@@ -110,9 +111,16 @@ export async function POST(request: NextRequest) {
       currentPassengers,
     });
     
+    const responseVehicle = toLiveVehicleResponse(vehicle);
+    
+    // Broadcast vehicle creation via socket
+    if (socketServer.isActive()) {
+      socketServer.broadcastVehicleCreated(responseVehicle);
+    }
+    
     return NextResponse.json({ 
       success: true, 
-      data: toLiveVehicleResponse(vehicle) 
+      data: responseVehicle 
     }, { status: 201 });
   } catch (error) {
     return NextResponse.json(

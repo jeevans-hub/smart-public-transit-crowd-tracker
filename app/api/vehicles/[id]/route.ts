@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { vehicleService } from '../../../../services/vehicleService';
 import { UpdateVehicleDTO } from '../../../../types/vehicle';
+import { socketServer } from '../../../../server/socket';
 
 export async function GET(
   request: NextRequest,
@@ -32,6 +33,17 @@ export async function PUT(
     const { id } = await params;
     const body: UpdateVehicleDTO = await request.json();
     const vehicle = await vehicleService.update(id, body);
+    
+    // Broadcast vehicle update via socket
+    if (socketServer.isActive() && vehicle) {
+      socketServer.broadcastVehicleUpdated(vehicle);
+      
+      // Also broadcast status change if status was updated
+      if (body.status !== undefined) {
+        socketServer.broadcastVehicleStatus(vehicle);
+      }
+    }
+    
     return NextResponse.json({ success: true, data: vehicle });
   } catch (error) {
     return NextResponse.json(
@@ -54,6 +66,12 @@ export async function DELETE(
         { status: 404 }
       );
     }
+    
+    // Broadcast vehicle deletion via socket
+    if (socketServer.isActive()) {
+      socketServer.broadcastVehicleDeleted(id);
+    }
+    
     return NextResponse.json({ success: true, message: 'Vehicle deleted successfully' });
   } catch (error) {
     return NextResponse.json(

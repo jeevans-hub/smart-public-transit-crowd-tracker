@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { vehicleService } from '../../../services/vehicleService';
 import { CreateVehicleDTO } from '../../../types/vehicle';
+import { socketServer } from '../../../server/socket';
 
 export async function GET() {
   try {
@@ -18,6 +19,12 @@ export async function POST(request: NextRequest) {
   try {
     const body: CreateVehicleDTO = await request.json();
     const vehicle = await vehicleService.create(body);
+    
+    // Broadcast vehicle creation via socket
+    if (socketServer.isActive()) {
+      socketServer.broadcastVehicleCreated(vehicle);
+    }
+    
     return NextResponse.json({ success: true, data: vehicle }, { status: 201 });
   } catch (error) {
     return NextResponse.json(

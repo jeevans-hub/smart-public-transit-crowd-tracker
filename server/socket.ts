@@ -2,7 +2,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import { Socket as SocketIOSocket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { SERVER_EVENTS, CLIENT_EVENTS } from '@/utils/eventNames';
+import { SERVER_EVENTS, CLIENT_EVENTS } from '../utils/eventNames';
 import { env } from '@/lib/env';
 
 type ExtendedSocket = SocketIOSocket & {
@@ -344,6 +344,43 @@ class SocketServer {
       totalDisconnections: 0,
       connectionDuration: 0,
     };
+  }
+
+  /**
+   * Vehicle event broadcasts
+   */
+  public broadcastVehicleCreated(vehicle: any): void {
+    this.broadcast(SERVER_EVENTS.VEHICLE_CREATED, vehicle);
+    this.log(`Vehicle created: ${vehicle.vehicleNumber || vehicle._id}`);
+  }
+
+  public broadcastVehicleUpdated(vehicle: any): void {
+    this.broadcast(SERVER_EVENTS.VEHICLE_UPDATED, vehicle);
+    this.log(`Vehicle updated: ${vehicle.vehicleNumber || vehicle._id}`);
+  }
+
+  public broadcastVehicleDeleted(vehicleId: string): void {
+    this.broadcast(SERVER_EVENTS.VEHICLE_DELETED, { id: vehicleId });
+    this.log(`Vehicle deleted: ${vehicleId}`);
+  }
+
+  public broadcastVehicleMoved(vehicle: any): void {
+    this.broadcast(SERVER_EVENTS.VEHICLE_MOVED, vehicle);
+    if (this.debugMode) {
+      this.log(`Vehicle moved: ${vehicle.vehicleNumber} to [${vehicle.latitude}, ${vehicle.longitude}]`);
+    }
+  }
+
+  public broadcastVehicleStatus(vehicle: any): void {
+    this.broadcast(SERVER_EVENTS.VEHICLE_STATUS, vehicle);
+    this.log(`Vehicle status changed: ${vehicle.vehicleNumber} -> ${vehicle.status}`);
+  }
+
+  public broadcastVehicleLocation(vehicle: any): void {
+    this.broadcast(SERVER_EVENTS.VEHICLE_LOCATION, vehicle);
+    if (this.debugMode) {
+      this.log(`Vehicle location: ${vehicle.vehicleNumber} at [${vehicle.latitude}, ${vehicle.longitude}]`);
+    }
   }
 }
 

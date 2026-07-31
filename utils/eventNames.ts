@@ -15,9 +15,12 @@ export const SERVER_EVENTS = {
   CROWD_ALERT: 'crowd:alert',
   
   // Vehicle tracking events
-  VEHICLE_UPDATE: 'vehicle:update',
-  VEHICLE_LOCATION: 'vehicle:location',
+  VEHICLE_CREATED: 'vehicle:created',
+  VEHICLE_UPDATED: 'vehicle:updated',
+  VEHICLE_DELETED: 'vehicle:deleted',
+  VEHICLE_MOVED: 'vehicle:moved',
   VEHICLE_STATUS: 'vehicle:status',
+  VEHICLE_LOCATION: 'vehicle:location',
   
   // Prediction events
   PREDICTION_UPDATE: 'prediction:update',

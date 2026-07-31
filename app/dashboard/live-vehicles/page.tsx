@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
-import { useVehicleTracking } from '@/hooks/useVehicleTracking';
+import { useState, useCallback, useMemo } from 'react';
+import { useVehicleRealtime } from '@/hooks/useVehicleRealtime';
+import { useLiveNotifications, LiveNotificationContainer } from '@/components/realtime/LiveNotification';
 import VehicleMap from '@/components/vehicles/VehicleMap';
 import VehicleInfoCard from '@/components/vehicles/VehicleInfoCard';
 import VehicleFilters from '@/components/vehicles/VehicleFilters';
@@ -10,60 +11,95 @@ import PageHeader from '@/components/dashboard/PageHeader';
 import LoadingSpinner from '@/components/dashboard/LoadingSpinner';
 import EmptyState from '@/components/dashboard/EmptyState';
 import { ILiveVehicleResponse, LiveVehicleStatus } from '@/types/vehicle';
-import { Map, RefreshCw, Radio, Play, Pause } from 'lucide-react';
+import { Map, RefreshCw, Radio, Play } from 'lucide-react';
 
 export default function LiveVehiclesPage() {
   const [selectedVehicle, setSelectedVehicle] = useState<ILiveVehicleResponse | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [filters, setFilters] = useState<{
+    search?: string;
+    status?: LiveVehicleStatus;
+    route?: string;
+    vehicleType?: string;
+  }>({});
 
   const {
     vehicles,
     statistics,
-    loading,
-    error,
-    filters,
-    setFilters,
-    sort,
-    setSort,
-    refresh,
-    simulateMovement,
-  } = useVehicleTracking({ pollInterval: 10000, autoPoll: autoRefresh });
+    timeline,
+    alerts,
+    isConnected,
+    syncing,
+    connectionState,
+    syncData,
+  } = useVehicleRealtime({
+    autoSync: true,
+    onVehicleStatus: (vehicle) => {
+      if (vehicle.status === 'OFFLINE') {
+        addNotification('warning', 'Vehicle Offline', `${vehicle.vehicleNumber} is now offline`, 5000);
+      } else if (vehicle.status === 'MOVING') {
+        addNotification('success', 'Vehicle Moving', `${vehicle.vehicleNumber} is back in service`, 4000);
+      }
+    },
+    onAlertNew: (alert) => {
+      addNotification(
+        alert.type === 'critical' ? 'critical' : alert.type === 'high' ? 'warning' : 'information',
+        'Vehicle Alert',
+        alert.message,
+        6000
+      );
+    },
+  });
+
+  // Use live notifications
+  const { notifications, addNotification, removeNotification } = useLiveNotifications();
 
   const handleVehicleClick = useCallback((vehicle: ILiveVehicleResponse) => {
     setSelectedVehicle(vehicle);
   }, []);
 
   const handleSimulate = useCallback(async () => {
-    await simulateMovement();
-  }, [simulateMovement]);
+    try {
+      const res = await fetch('/api/live-vehicles?simulate=true');
+      const data = await res.json();
+      if (data.success) {
+        addNotification('success', 'Movement Simulated', 'Vehicle positions updated', 3000);
+      }
+    } catch (error) {
+      console.error('Failed to simulate movement:', error);
+      addNotification('critical', 'Simulation Failed', 'Could not simulate vehicle movement', 3000);
+    }
+  }, [addNotification]);
 
-  const toggleAutoRefresh = useCallback(() => {
-    setAutoRefresh((prev) => !prev);
-  }, []);
+  // Filter vehicles based on current filters
+  const filteredVehicles = useMemo(() => {
+    let result = [...vehicles];
 
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Live Vehicle Tracking"
-          subtitle="Real-time transit vehicle monitoring with GPS tracking"
-        />
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-red-900 mb-2">Error Loading Vehicles</h2>
-          <p className="text-red-700">{error}</p>
-          <button
-            onClick={refresh}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+    if (filters.search) {
+      const query = filters.search.toLowerCase();
+      result = result.filter(
+        (v) =>
+          v.vehicleNumber.toLowerCase().includes(query) ||
+          v.route.toLowerCase().includes(query) ||
+          v.driverName?.toLowerCase().includes(query)
+      );
+    }
 
-  if (loading && vehicles.length === 0) {
+    if (filters.status) {
+      result = result.filter((v) => v.status === filters.status);
+    }
+
+    if (filters.route) {
+      result = result.filter((v) => v.route === filters.route);
+    }
+
+    if (filters.vehicleType) {
+      result = result.filter((v) => v.vehicleType === filters.vehicleType);
+    }
+
+    return result;
+  }, [vehicles, filters]);
+
+  if (syncing && vehicles.length === 0) {
     return <LoadingSpinner />;
   }
 
@@ -86,46 +122,43 @@ export default function LiveVehiclesPage() {
         }
       />
 
-      {/* Auto-Refresh Control */}
+      {/* Realtime Connection Status Bar */}
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-3">
-              {autoRefresh && (
+              {isConnected && (
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               )}
               <span
                 className={`relative inline-flex rounded-full h-3 w-3 ${
-                  autoRefresh ? 'bg-emerald-500' : 'bg-gray-400'
+                  isConnected ? 'bg-emerald-500' : 'bg-gray-400'
                 }`}
               ></span>
             </span>
             <span className="text-sm font-semibold text-gray-900">
-              {autoRefresh ? 'Live Tracking Active' : 'Auto-Refresh Paused'}
+              {isConnected ? 'Realtime Connected' : 'Realtime Disconnected'}
             </span>
+            {syncing && (
+              <span className="text-xs text-blue-600 ml-2">Syncing...</span>
+            )}
           </div>
+
           <span className="text-xs text-gray-500 hidden sm:inline border-l border-gray-200 pl-3">
-            Refreshing every 10 seconds
+            Status: {connectionState}
           </span>
         </div>
 
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={toggleAutoRefresh}
-              className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
-            />
-            Auto-refresh (10s)
-          </label>
-
+          <div className="text-xs text-gray-500">
+            {isConnected ? 'Live updates enabled' : 'Reconnecting...'}
+          </div>
           <button
-            onClick={refresh}
+            onClick={syncData}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
           >
             <RefreshCw size={14} />
-            <span>Refresh</span>
+            <span>Sync</span>
           </button>
         </div>
       </div>
@@ -180,10 +213,10 @@ export default function LiveVehiclesPage() {
                 </div>
               ) : (
                 <VehicleMap
-                  vehicles={vehicles}
+                  vehicles={filteredVehicles}
                   onVehicleClick={handleVehicleClick}
                   selectedVehicle={selectedVehicle}
-                  loading={loading}
+                  loading={syncing}
                 />
               )}
             </div>
@@ -201,10 +234,6 @@ export default function LiveVehiclesPage() {
             onRouteChange={(value) => setFilters({ ...filters, route: value })}
             vehicleType={filters.vehicleType || ''}
             onVehicleTypeChange={(value) => setFilters({ ...filters, vehicleType: value })}
-            sortField={sort.field}
-            onSortFieldChange={(value) => setSort({ ...sort, field: value })}
-            sortOrder={sort.order}
-            onSortOrderChange={(value) => setSort({ ...sort, order: value })}
           />
 
           <VehicleLegend />
@@ -218,9 +247,9 @@ export default function LiveVehiclesPage() {
 
           {/* Vehicle List */}
           <div className="bg-white rounded-lg shadow p-4 border border-gray-200 max-h-[300px] overflow-y-auto">
-            <h3 className="font-semibold text-gray-900 mb-3">Vehicles ({vehicles.length})</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">Vehicles ({filteredVehicles.length})</h3>
             <div className="space-y-2">
-              {vehicles.map((vehicle) => (
+              {filteredVehicles.map((vehicle) => (
                 <button
                   key={vehicle._id}
                   onClick={() => handleVehicleClick(vehicle)}
@@ -246,6 +275,91 @@ export default function LiveVehiclesPage() {
           </div>
         </div>
       </div>
+
+      {/* Activity Timeline */}
+      {timeline.length > 0 && (
+        <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Activity Timeline</h3>
+            <p className="text-sm text-gray-500 mt-1">Recent vehicle events</p>
+          </div>
+          <div className="divide-y divide-gray-200 max-h-[300px] overflow-y-auto">
+            {timeline.slice(0, 10).map((event, index) => (
+              <div key={index} className="p-4 hover:bg-gray-50">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-blue-500" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">
+                      {event.type.replace(/:/g, ' ').toUpperCase()}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {JSON.stringify(event.data)}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(event.timestamp).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Live Alerts */}
+      {alerts.length > 0 && (
+        <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Live Alerts</h3>
+            <p className="text-sm text-gray-500 mt-1">Active vehicle alerts</p>
+          </div>
+          <div className="divide-y divide-gray-200 max-h-[300px] overflow-y-auto">
+            {alerts.slice(0, 10).map((alert, index) => (
+              <div
+                key={index}
+                className={`p-4 ${
+                  alert.type === 'critical'
+                    ? 'bg-red-50'
+                    : alert.type === 'high'
+                    ? 'bg-orange-50'
+                    : alert.type === 'medium'
+                    ? 'bg-yellow-50'
+                    : 'bg-blue-50'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`flex-shrink-0 w-2 h-2 mt-2 rounded-full ${
+                      alert.type === 'critical'
+                        ? 'bg-red-500'
+                        : alert.type === 'high'
+                        ? 'bg-orange-500'
+                        : alert.type === 'medium'
+                        ? 'bg-yellow-500'
+                        : 'bg-blue-500'
+                    }`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{alert.message}</p>
+                    {alert.vehicleNumber && (
+                      <p className="text-xs text-gray-500 mt-1">Vehicle: {alert.vehicleNumber}</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(alert.timestamp).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Live Notification Container */}
+      <LiveNotificationContainer 
+        notifications={notifications} 
+        onClose={removeNotification} 
+      />
     </div>
   );
 }
