@@ -2,6 +2,7 @@ import PredictionHistory from '@/models/PredictionHistory';
 import CrowdReport from '@/models/CrowdReport';
 import { IPrediction, IPredictionDocument, IPredictionResponse, IPredictionMetrics, PredictionWindow, IHistoricalData } from '@/types/prediction';
 import { PredictionEngine } from '@/utils/predictionEngine';
+import { socketServer } from '@/server/socket';
 
 /**
  * Create a new prediction
@@ -35,6 +36,60 @@ export async function createPrediction(data: {
   // Save to database
   const predictionRecord = new PredictionHistory(prediction);
   await predictionRecord.save();
+  
+  // Broadcast socket events
+  if (socketServer.isActive()) {
+    const response = toPredictionResponse(predictionRecord);
+    socketServer.broadcastPredictionGenerated(response);
+    
+    // Generate and broadcast alerts
+    const alerts = PredictionEngine.generateAlerts(
+      predictionRecord.stationId,
+      predictionRecord.stationName,
+      historicalData,
+      prediction
+    );
+    alerts.forEach((alert) => {
+      socketServer.broadcastPredictionAlert(predictionRecord.stationId, predictionRecord.stationName, alert);
+    });
+    
+    // Generate and broadcast insights
+    const insights = PredictionEngine.generateInsights(
+      predictionRecord.stationId,
+      predictionRecord.stationName,
+      historicalData,
+      prediction
+    );
+    insights.forEach((insight) => {
+      socketServer.broadcastPredictionInsight(predictionRecord.stationId, predictionRecord.stationName, insight);
+    });
+    
+    // Broadcast trend and confidence
+    socketServer.broadcastPredictionTrend(
+      predictionRecord.stationId,
+      predictionRecord.stationName,
+      predictionRecord.trend,
+      predictionRecord.confidence
+    );
+    socketServer.broadcastPredictionConfidence(
+      predictionRecord.stationId,
+      predictionRecord.stationName,
+      predictionRecord.confidence,
+      predictionRecord.risk
+    );
+    
+    // Broadcast timeline event
+    socketServer.broadcastTimelineEvent({
+      type: 'Prediction Generated',
+      timestamp: new Date(),
+      data: {
+        stationId: predictionRecord.stationId,
+        stationName: predictionRecord.stationName,
+        predictedCrowd: predictionRecord.predictedCrowd,
+        confidence: predictionRecord.confidence,
+      },
+    });
+  }
   
   return predictionRecord;
 }
@@ -98,7 +153,23 @@ export async function getPredictions(filters: {
  * Delete prediction by ID
  */
 export async function deletePrediction(id: string): Promise<IPredictionDocument | null> {
-  return PredictionHistory.findByIdAndDelete(id);
+  const prediction = await PredictionHistory.findByIdAndDelete(id);
+  
+  if (prediction && socketServer.isActive()) {
+    socketServer.broadcastPredictionDeleted(id, prediction.stationId);
+    
+    // Broadcast timeline event
+    socketServer.broadcastTimelineEvent({
+      type: 'Prediction Deleted',
+      timestamp: new Date(),
+      data: {
+        stationId: prediction.stationId,
+        stationName: prediction.stationName,
+      },
+    });
+  }
+  
+  return prediction;
 }
 
 /**

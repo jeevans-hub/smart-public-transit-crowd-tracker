@@ -10,8 +10,8 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-export function generateToken(userId: string): string {
-  return jwt.sign({ userId }, env.JWT_SECRET, {
+export function generateToken(userId: string, username?: string): string {
+  return jwt.sign({ userId, username }, env.JWT_SECRET, {
     expiresIn: '7d',
   });
 }

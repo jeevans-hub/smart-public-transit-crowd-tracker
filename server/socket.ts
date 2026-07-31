@@ -101,9 +101,12 @@ class SocketServer {
         const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
         
         console.log('[Socket Server] Connection attempt, token present:', !!token);
+        console.log('[Socket Server] Socket ID:', socket.id);
+        console.log('[Socket Server] Handshake auth:', socket.handshake.auth);
         
         if (!token) {
           this.log('Connection rejected: No token provided');
+          console.log('[Socket Server] Calling next() with error: No token');
           return next(new Error('Authentication failed: No token provided'));
         }
 
@@ -114,13 +117,15 @@ class SocketServer {
         
         // Attach user info to socket
         socket.userId = decoded.userId;
-        socket.username = decoded.username || 'Unknown';
+        socket.username = decoded.username || `User-${decoded.userId?.substring(0, 8)}`;
         
         this.log(`User authenticated: ${socket.username} (${socket.userId})`);
+        console.log('[Socket Server] Calling next() to proceed with connection');
         next();
       } catch (error) {
         console.error('[Socket Server] Authentication error:', error);
         this.log('Connection rejected: Invalid token');
+        console.log('[Socket Server] Calling next() with error: Invalid token');
         next(new Error('Authentication failed: Invalid token'));
       }
     });
@@ -132,8 +137,14 @@ class SocketServer {
   private setupEventHandlers(): void {
     if (!this.io) return;
 
+    console.log('[Socket Server] Setting up event handlers');
+    
     this.io.on('connection', (socket: ExtendedSocket) => {
       this.handleConnection(socket);
+    });
+    
+    this.io.engine.on('connection_error', (err) => {
+      console.error('[Socket Server] Engine connection error:', err);
     });
   }
 
@@ -141,6 +152,7 @@ class SocketServer {
    * Handle new connection
    */
   private handleConnection(socket: ExtendedSocket): void {
+    console.log('[Socket Server] handleConnection called for socket:', socket.id);
     this.metrics.connectedClients++;
     this.metrics.totalConnections++;
     
@@ -154,6 +166,7 @@ class SocketServer {
       messagesSent: this.metrics.messagesSent,
       messagesReceived: this.metrics.messagesReceived,
     });
+    console.log('[Socket Server] System status sent to client');
 
     // Handle client events
     socket.on(CLIENT_EVENTS.PING, (data: any) => this.handlePing(socket, data));
@@ -380,6 +393,108 @@ class SocketServer {
     this.broadcast(SERVER_EVENTS.VEHICLE_LOCATION, vehicle);
     if (this.debugMode) {
       this.log(`Vehicle location: ${vehicle.vehicleNumber} at [${vehicle.latitude}, ${vehicle.longitude}]`);
+    }
+  }
+
+  /**
+   * Prediction event broadcasts
+   */
+  public broadcastPredictionGenerated(prediction: any): void {
+    this.broadcast(SERVER_EVENTS.PREDICTION_GENERATED, prediction);
+    this.broadcast(SERVER_EVENTS.PREDICTION_UPDATED, prediction);
+    this.broadcast(SERVER_EVENTS.DASHBOARD_UPDATE, { type: 'prediction', data: prediction });
+    this.log(`Prediction generated: ${prediction.stationName} - ${prediction.predictedCrowd}%`);
+  }
+
+  public broadcastPredictionUpdated(prediction: any): void {
+    this.broadcast(SERVER_EVENTS.PREDICTION_UPDATED, prediction);
+    this.broadcast(SERVER_EVENTS.DASHBOARD_UPDATE, { type: 'prediction', data: prediction });
+    this.log(`Prediction updated: ${prediction.stationName}`);
+  }
+
+  public broadcastPredictionDeleted(predictionId: string, stationId: string): void {
+    this.broadcast(SERVER_EVENTS.PREDICTION_DELETED, { id: predictionId, stationId });
+    this.broadcast(SERVER_EVENTS.DASHBOARD_UPDATE, { type: 'prediction_deleted', data: { id: predictionId, stationId } });
+    this.log(`Prediction deleted: ${predictionId}`);
+  }
+
+  public broadcastPredictionTrend(stationId: string, stationName: string, trend: string, confidence: number): void {
+    this.broadcast(SERVER_EVENTS.PREDICTION_TREND, {
+      stationId,
+      stationName,
+      trend,
+      confidence,
+      timestamp: new Date(),
+    });
+    this.log(`Prediction trend: ${stationName} - ${trend}`);
+  }
+
+  public broadcastPredictionConfidence(stationId: string, stationName: string, confidence: number, risk: string): void {
+    this.broadcast(SERVER_EVENTS.PREDICTION_CONFIDENCE, {
+      stationId,
+      stationName,
+      confidence,
+      risk,
+      timestamp: new Date(),
+    });
+    this.log(`Prediction confidence: ${stationName} - ${confidence}% (${risk})`);
+  }
+
+  public broadcastPredictionAnomaly(stationId: string, stationName: string, anomaly: any): void {
+    this.broadcast(SERVER_EVENTS.PREDICTION_ANOMALY, {
+      stationId,
+      stationName,
+      anomaly,
+      timestamp: new Date(),
+    });
+    this.broadcast(SERVER_EVENTS.PREDICTION_ALERT, {
+      stationId,
+      stationName,
+      type: 'ANOMALY_DETECTED',
+      message: anomaly.message,
+      severity: anomaly.severity,
+      timestamp: new Date(),
+    });
+    this.broadcast(SERVER_EVENTS.ALERT_NEW, {
+      type: anomaly.severity,
+      stationId,
+      stationName,
+      message: anomaly.message,
+      timestamp: new Date(),
+    });
+    this.log(`Prediction anomaly: ${stationName} - ${anomaly.message}`);
+  }
+
+  public broadcastPredictionAlert(stationId: string, stationName: string, alert: any): void {
+    this.broadcast(SERVER_EVENTS.PREDICTION_ALERT, {
+      stationId,
+      stationName,
+      ...alert,
+    });
+    this.broadcast(SERVER_EVENTS.ALERT_NEW, {
+      type: alert.severity,
+      stationId,
+      stationName,
+      message: alert.message,
+      timestamp: new Date(),
+    });
+    this.log(`Prediction alert: ${stationName} - ${alert.message}`);
+  }
+
+  public broadcastPredictionInsight(stationId: string, stationName: string, insight: any): void {
+    this.broadcast(SERVER_EVENTS.PREDICTION_INSIGHT, {
+      stationId,
+      stationName,
+      insight,
+      timestamp: new Date(),
+    });
+    this.log(`Prediction insight: ${stationName} - ${insight.insight}`);
+  }
+
+  public broadcastTimelineEvent(event: any): void {
+    this.broadcast(SERVER_EVENTS.TIMELINE_UPDATE, event);
+    if (this.debugMode) {
+      this.log(`Timeline event: ${event.type}`);
     }
   }
 }

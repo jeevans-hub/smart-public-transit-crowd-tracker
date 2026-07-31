@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     const user = await createUser({ username, email, passwordHash });
     console.log('[API Register] User saved successfully. User ID:', user._id.toString());
 
-    const token = generateToken(user._id.toString());
+    const token = generateToken(user._id.toString(), user.username);
 
     const response = NextResponse.json({
       success: true,

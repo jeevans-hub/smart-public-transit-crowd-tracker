@@ -75,7 +75,7 @@ export default function VehicleMap({
 
   const center = vehicles.length > 0
     ? [vehicles[0].latitude, vehicles[0].longitude]
-    : [40.7128, -74.0060]; // Default to NYC if no vehicles
+    : [12.9716, 77.5946]; // Default to Bengaluru if no vehicles
 
   return (
     <MapContainer

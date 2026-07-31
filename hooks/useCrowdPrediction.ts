@@ -20,8 +20,6 @@ interface UseCrowdPredictionReturn {
 
 export function useCrowdPrediction(options: UseCrowdPredictionOptions = {}): UseCrowdPredictionReturn {
   const {
-    autoRefresh = true,
-    refreshInterval = 30000, // 30 seconds default
     stationId,
     window,
   } = options;
@@ -57,7 +55,7 @@ export function useCrowdPrediction(options: UseCrowdPredictionOptions = {}): Use
   }, [stationId, window]);
 
   const generatePrediction = useCallback(async (
-    stationId: string,
+    predictionStationId: string,
     stationName: string,
     predictionWindow: PredictionWindow
   ) => {
@@ -71,7 +69,7 @@ export function useCrowdPrediction(options: UseCrowdPredictionOptions = {}): Use
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          stationId,
+          stationId: predictionStationId,
           stationName,
           window: predictionWindow,
         }),
@@ -79,10 +77,7 @@ export function useCrowdPrediction(options: UseCrowdPredictionOptions = {}): Use
       
       const result = await response.json();
       
-      if (result.success) {
-        // Refresh predictions after generating a new one
-        await fetchPredictions();
-      } else {
+      if (!result.success) {
         setError(result.error || 'Failed to generate prediction');
       }
     } catch (err) {
@@ -90,7 +85,7 @@ export function useCrowdPrediction(options: UseCrowdPredictionOptions = {}): Use
     } finally {
       setLoading(false);
     }
-  }, [fetchPredictions]);
+  }, []);
 
   const deletePrediction = useCallback(async (id: string) => {
     try {
@@ -103,10 +98,7 @@ export function useCrowdPrediction(options: UseCrowdPredictionOptions = {}): Use
       
       const result = await response.json();
       
-      if (result.success) {
-        // Refresh predictions after deletion
-        await fetchPredictions();
-      } else {
+      if (!result.success) {
         setError(result.error || 'Failed to delete prediction');
       }
     } catch (err) {
@@ -114,7 +106,7 @@ export function useCrowdPrediction(options: UseCrowdPredictionOptions = {}): Use
     } finally {
       setLoading(false);
     }
-  }, [fetchPredictions]);
+  }, []);
 
   const refresh = useCallback(async () => {
     await fetchPredictions();
@@ -122,12 +114,7 @@ export function useCrowdPrediction(options: UseCrowdPredictionOptions = {}): Use
 
   useEffect(() => {
     fetchPredictions();
-    
-    if (autoRefresh) {
-      const interval = setInterval(fetchPredictions, refreshInterval);
-      return () => clearInterval(interval);
-    }
-  }, [fetchPredictions, autoRefresh, refreshInterval]);
+  }, [fetchPredictions]);
 
   return {
     predictions,
@@ -201,9 +188,6 @@ export function useCriticalPredictions() {
 
   useEffect(() => {
     fetchCriticalPredictions();
-    
-    const interval = setInterval(fetchCriticalPredictions, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
   }, [fetchCriticalPredictions]);
 
   return { predictions, loading, error, refresh: fetchCriticalPredictions };

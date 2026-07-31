@@ -12,7 +12,7 @@ import MapPlaceholder from '@/components/dashboard/MapPlaceholder';
 import ActivityTimeline from '@/components/dashboard/ActivityTimeline';
 import LoadingSpinner from '@/components/dashboard/LoadingSpinner';
 import { StatCardData, CrowdData, AlertData, ActivityData, ChartData, MapMarker } from '@/data/dashboard';
-import { useCrowdPrediction } from '@/hooks/useCrowdPrediction';
+import { usePredictionRealtime } from '@/hooks/usePredictionRealtime';
 import PredictionSummary from '@/components/prediction/PredictionSummary';
 import PredictionAlerts from '@/components/prediction/PredictionAlerts';
 import { Brain } from 'lucide-react';
@@ -39,9 +39,8 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { predictions: predictionData, loading: predictionsLoading } = useCrowdPrediction({
-    autoRefresh: true,
-    refreshInterval: 30000,
+  const { predictions: predictionData, loading: predictionsLoading } = usePredictionRealtime({
+    autoSync: true,
   });
 
   // Use realtime hook for crowd statistics

@@ -5,6 +5,8 @@ import { verifyToken } from '@/utils/helpers';
 import { socketServer } from '@/server/socket';
 import { SERVER_EVENTS } from '@/utils/eventNames';
 import { CROWD_THRESHOLDS } from '@/utils/constants';
+import { createPrediction } from '@/services/predictionService';
+import CrowdReport from '@/models/CrowdReport';
 
 export async function GET(request: NextRequest) {
   try {
@@ -116,6 +118,33 @@ export async function POST(request: NextRequest) {
           occupancyPercentage: reportResponse.occupancyPercentage,
           timestamp: new Date(),
         });
+      }
+      
+      // Automatically regenerate prediction for this station
+      try {
+        // Get station name from the report or use stationId
+        const stationName = reportResponse.stationId; // In production, you'd fetch the actual station name
+        
+        // Generate new prediction with 30-minute window
+        await createPrediction({
+          stationId: reportResponse.stationId,
+          stationName: stationName,
+          window: '30',
+        });
+        
+        // Broadcast timeline event for prediction regeneration
+        socketServer.broadcast(SERVER_EVENTS.TIMELINE_UPDATE, {
+          type: 'Prediction Regenerated',
+          timestamp: new Date(),
+          data: {
+            stationId: reportResponse.stationId,
+            stationName: stationName,
+            triggeredBy: 'CROWD_REPORT_CREATED',
+          },
+        });
+      } catch (predictionError) {
+        console.error('Failed to auto-regenerate prediction:', predictionError);
+        // Don't fail the crowd report if prediction generation fails
       }
     }
     

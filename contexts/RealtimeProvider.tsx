@@ -49,18 +49,27 @@ export function RealtimeProvider({ children, autoConnect = true }: RealtimeProvi
       // Get JWT token from API endpoint (cookie is httpOnly, so we need server to return it)
       try {
         console.log('[RealtimeProvider] Attempting to get token for socket connection...');
+        console.log('[RealtimeProvider] Current user:', currentUser);
         const response = await fetch('/api/auth/token');
         const data = await response.json();
         console.log('[RealtimeProvider] Token response:', data);
         if (data.success && data.token) {
           console.log('[RealtimeProvider] Token received, connecting to socket...');
+          console.log('[RealtimeProvider] Token length:', data.token.length);
           socketService.connect(data.token);
+          console.log('[RealtimeProvider] Socket connect() called');
+          return Promise.resolve();
         } else {
           console.error('[RealtimeProvider] Failed to get token:', data);
+          return Promise.reject(new Error('Failed to get token'));
         }
       } catch (error) {
         console.error('[RealtimeProvider] Failed to get token for socket connection:', error);
+        return Promise.reject(error);
       }
+    } else {
+      console.log('[RealtimeProvider] No current user, skipping connection');
+      return Promise.resolve();
     }
   }, [currentUser]);
 
@@ -111,6 +120,7 @@ export function RealtimeProvider({ children, autoConnect = true }: RealtimeProvi
     }
 
     console.log('[RealtimeProvider] Auto-connect check - autoConnect:', autoConnect, 'currentUser:', !!currentUser);
+    console.log('[RealtimeProvider] Current user data:', currentUser);
     
     if (autoConnect && currentUser) {
       console.log('[RealtimeProvider] Calling connect()...');

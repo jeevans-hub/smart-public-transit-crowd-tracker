@@ -53,6 +53,7 @@ export function useVehicleRealtime(options: UseVehicleRealtimeOptions = {}) {
   
   const subscriptionsRef = useRef<(() => void)[]>([]);
   const syncInProgressRef = useRef(false);
+  const hasSyncedRef = useRef(false);
 
   // Fetch initial data after reconnect
   const syncData = useCallback(async () => {
@@ -71,6 +72,7 @@ export function useVehicleRealtime(options: UseVehicleRealtimeOptions = {}) {
         const vehiclesData = await vehiclesRes.json();
         if (vehiclesData.success) {
           setVehicles(vehiclesData.data || []);
+          hasSyncedRef.current = true;
         }
       }
 
@@ -248,8 +250,8 @@ export function useVehicleRealtime(options: UseVehicleRealtimeOptions = {}) {
 
     subscriptionsRef.current = subscriptions;
 
-    // Sync data on initial connection
-    if (autoSync) {
+    // Sync data on initial connection (only once)
+    if (autoSync && !hasSyncedRef.current) {
       syncData();
     }
 
@@ -258,13 +260,6 @@ export function useVehicleRealtime(options: UseVehicleRealtimeOptions = {}) {
       subscriptionsRef.current = [];
     };
   }, [isConnected, subscribe, handleVehicleCreated, handleVehicleUpdated, handleVehicleDeleted, handleVehicleMoved, handleVehicleStatus, handleVehicleLocation, handleDashboardUpdate, handleAlertNew, autoSync, syncData]);
-
-  // Sync data when connection state changes from disconnected to connected
-  useEffect(() => {
-    if (connectionState === 'CONNECTED' && autoSync) {
-      syncData();
-    }
-  }, [connectionState, autoSync, syncData]);
 
   return {
     // Data

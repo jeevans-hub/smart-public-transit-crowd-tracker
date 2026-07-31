@@ -32,8 +32,12 @@ class SocketService {
   private debugMode = process.env.NODE_ENV === 'development';
 
   private constructor(config: SocketConfig = {}) {
+    const url = process.env.NEXT_PUBLIC_SOCKET_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    console.log('[SocketService] Initializing with URL:', url);
+    console.log('[SocketService] Window location:', typeof window !== 'undefined' ? window.location.origin : 'server-side');
+    
     this.config = {
-      url: process.env.NEXT_PUBLIC_SOCKET_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
+      url: url,
       path: '/socket.io',
       reconnectionAttempts: 6,
       reconnectionDelay: 1000,
@@ -60,6 +64,8 @@ class SocketService {
    * Connect to socket server
    */
   public connect(token?: string): void {
+    console.log('[SocketService] connect() called with token:', !!token);
+    
     if (this.socket?.connected) {
       this.log('Already connected');
       return;
@@ -75,14 +81,16 @@ class SocketService {
       reconnectionDelay: this.config.reconnectionDelay,
       reconnectionDelayMax: this.config.reconnectionDelayMax,
       timeout: this.config.timeout,
-      autoConnect: this.config.autoConnect,
+      autoConnect: true, // Changed to true to ensure connection attempt
       transports: ['websocket', 'polling'],
+      forceNew: true, // Force new connection
     };
 
     // Add authentication token if provided
     if (token) {
       socketOptions.auth = { token };
       console.log('[SocketService] Connecting with token, URL:', this.config.url);
+      console.log('[SocketService] Token length:', token.length);
     } else {
       console.warn('[SocketService] Connecting WITHOUT token');
     }
@@ -91,6 +99,7 @@ class SocketService {
     console.log('[SocketService] Socket options:', socketOptions);
     
     this.socket = io(this.config.url, socketOptions);
+    console.log('[SocketService] Socket instance created:', !!this.socket);
     this.setupEventHandlers();
     this.startHeartbeat();
 
@@ -124,19 +133,60 @@ class SocketService {
   private setupEventHandlers(): void {
     if (!this.socket) return;
 
-    this.socket.on('connect', () => this.handleConnect());
-    this.socket.on('disconnect', (reason) => this.handleDisconnect(reason));
-    this.socket.on('connect_error', (error) => this.handleConnectError(error));
-    this.socket.on('reconnect', (attemptNumber) => this.handleReconnect(attemptNumber));
-    this.socket.on('reconnect_attempt', (attemptNumber) => this.handleReconnectAttempt(attemptNumber));
-    this.socket.on('reconnect_failed', () => this.handleReconnectFailed());
-    this.socket.on('error', (error) => this.handleError(error));
+    console.log('[SocketService] Setting up event handlers');
+
+    this.socket.on('connect', () => {
+      console.log('[SocketService] Connected event fired');
+      this.handleConnect();
+    });
+    
+    this.socket.on('disconnect', (reason) => {
+      console.log('[SocketService] Disconnect event fired, reason:', reason);
+      this.handleDisconnect(reason);
+    });
+    
+    this.socket.on('connect_error', (error) => {
+      console.error('[SocketService] Connect error event fired:', error);
+      this.handleConnectError(error);
+    });
+    
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('[SocketService] Reconnect event fired, attempt:', attemptNumber);
+      this.handleReconnect(attemptNumber);
+    });
+    
+    this.socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log('[SocketService] Reconnect attempt event fired:', attemptNumber);
+      this.handleReconnectAttempt(attemptNumber);
+    });
+    
+    this.socket.on('reconnect_failed', () => {
+      console.log('[SocketService] Reconnect failed event fired');
+      this.handleReconnectFailed();
+    });
+    
+    this.socket.on('error', (error) => {
+      console.error('[SocketService] Error event fired:', error);
+      this.handleError(error);
+    });
 
     // Server events
-    this.socket.on(SERVER_EVENTS.SYSTEM_STATUS, (data: ServerInfo) => this.handleSystemStatus(data));
-    this.socket.on(SERVER_EVENTS.PONG, (data: HeartbeatData) => this.handlePong(data));
-    this.socket.on(SERVER_EVENTS.CLIENT_CONNECTED, (data: any) => this.handleClientConnected(data));
-    this.socket.on(SERVER_EVENTS.CLIENT_DISCONNECTED, (data: any) => this.handleClientDisconnected(data));
+    this.socket.on(SERVER_EVENTS.SYSTEM_STATUS, (data: ServerInfo) => {
+      console.log('[SocketService] System status received:', data);
+      this.handleSystemStatus(data);
+    });
+    
+    this.socket.on(SERVER_EVENTS.PONG, (data: HeartbeatData) => {
+      this.handlePong(data);
+    });
+    
+    this.socket.on(SERVER_EVENTS.CLIENT_CONNECTED, (data: any) => {
+      this.handleClientConnected(data);
+    });
+    
+    this.socket.on(SERVER_EVENTS.CLIENT_DISCONNECTED, (data: any) => {
+      this.handleClientDisconnected(data);
+    });
 
     console.log('[SocketService] Event handlers set up');
   }
@@ -146,6 +196,8 @@ class SocketService {
    */
   private handleConnect(): void {
     console.log('[SocketService] CONNECTED - Socket connected successfully');
+    console.log('[SocketService] Socket ID:', this.socket?.id);
+    console.log('[SocketService] Connected:', this.socket?.connected);
     this.setConnectionState('CONNECTED');
     this.reconnectAttempts = 0;
     this.flushEventQueue();

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Navbar from '@/components/dashboard/Navbar';
 import Sidebar from '@/components/dashboard/Sidebar';
 import LoadingSpinner from '@/components/dashboard/LoadingSpinner';
-import { useCrowdPrediction } from '@/hooks/useCrowdPrediction';
+import { usePredictionRealtime } from '@/hooks/usePredictionRealtime';
 import PredictionSummary from '@/components/prediction/PredictionSummary';
 import PredictionChart from '@/components/prediction/PredictionChart';
 import PredictionCard from '@/components/prediction/PredictionCard';
@@ -19,16 +19,34 @@ import { Brain, RefreshCw, BarChart3 } from 'lucide-react';
 
 export default function PredictionsPage() {
   const [selectedWindow, setSelectedWindow] = useState<'15' | '30' | '60'>('30');
-  const { predictions, metrics, loading, error, refresh, generatePrediction, deletePrediction } = useCrowdPrediction({
-    autoRefresh: true,
-    refreshInterval: 30000,
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  
+  const { predictions, metrics, loading, error, refresh, generatePrediction, deletePrediction, isConnected } = usePredictionRealtime({
+    autoSync: true,
     window: selectedWindow,
+    onPredictionGenerated: (prediction) => {
+      showToast(`Prediction generated for ${prediction.stationName}`, 'success');
+    },
+    onPredictionUpdated: (prediction) => {
+      showToast(`Prediction updated for ${prediction.stationName}`, 'info');
+    },
+    onPredictionDeleted: (data) => {
+      showToast('Prediction deleted', 'info');
+    },
+    onAlert: (data) => {
+      showToast(`${data.type}: ${data.message}`, data.severity === 'CRITICAL' ? 'error' : 'info');
+    },
   });
 
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const handleGeneratePrediction = async () => {
-    // For demo purposes, generate a prediction for a sample station
+    // For demo purposes, generate a prediction for a Bengaluru station
     // In production, this would be based on actual station selection
-    await generatePrediction('sample-station-1', 'Central Station', selectedWindow);
+    await generatePrediction('MBS001', 'Majestic Bus Station', selectedWindow);
   };
 
   if (error) {
@@ -166,6 +184,16 @@ export default function PredictionsPage() {
           </div>
         </main>
       </div>
+      
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white ${
+          toast.type === 'success' ? 'bg-green-600' : 
+          toast.type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+        }`}>
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

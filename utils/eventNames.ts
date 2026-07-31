@@ -23,8 +23,14 @@ export const SERVER_EVENTS = {
   VEHICLE_LOCATION: 'vehicle:location',
   
   // Prediction events
-  PREDICTION_UPDATE: 'prediction:update',
+  PREDICTION_GENERATED: 'prediction:generated',
+  PREDICTION_UPDATED: 'prediction:updated',
+  PREDICTION_DELETED: 'prediction:deleted',
+  PREDICTION_TREND: 'prediction:trend',
+  PREDICTION_CONFIDENCE: 'prediction:confidence',
+  PREDICTION_ANOMALY: 'prediction:anomaly',
   PREDICTION_ALERT: 'prediction:alert',
+  PREDICTION_INSIGHT: 'prediction:insight',
   
   // Alert events
   ALERT_NEW: 'alert:new',

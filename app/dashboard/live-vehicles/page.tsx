@@ -22,6 +22,9 @@ export default function LiveVehiclesPage() {
     vehicleType?: string;
   }>({});
 
+  // Use live notifications first (needed for callbacks)
+  const { notifications, addNotification, removeNotification } = useLiveNotifications();
+
   const {
     vehicles,
     statistics,
@@ -49,9 +52,6 @@ export default function LiveVehiclesPage() {
       );
     },
   });
-
-  // Use live notifications
-  const { notifications, addNotification, removeNotification } = useLiveNotifications();
 
   const handleVehicleClick = useCallback((vehicle: ILiveVehicleResponse) => {
     setSelectedVehicle(vehicle);

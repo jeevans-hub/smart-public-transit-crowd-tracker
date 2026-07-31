@@ -93,15 +93,25 @@ export async function GET(request: NextRequest) {
     const stationUtilizationData = generateStationUtilizationData(stationOccupancyMap);
     
     // Generate live crowd table data
-    const liveCrowdData = recentReports.slice(0, 20).map(report => {
+    const liveCrowdReports = recentReports.slice(0, 20);
+    
+    // Get all unique station IDs for crowd data
+    const crowdStationIds = [...new Set(liveCrowdReports.map(r => r.stationId))];
+    const crowdStations = await Station.find({ _id: { $in: crowdStationIds } });
+    const crowdStationMap = new Map(crowdStations.map(s => [s._id.toString(), s.stationName]));
+    
+    const liveCrowdData = liveCrowdReports.map(report => {
       const status = occupancyToDashboardStatus(report.occupancyPercentage);
       const now = new Date();
       const reportTime = new Date(report.createdAt);
       const diffMs = now.getTime() - reportTime.getTime();
       const diffMins = Math.floor(diffMs / 60000);
       
+      // Get station name from map
+      const stationName = crowdStationMap.get(report.stationId) || report.stationId;
+      
       return {
-        station: report.stationId,
+        station: stationName,
         vehicle: report.vehicleId,
         route: report.routeId,
         passengers: report.passengerCount,
@@ -112,49 +122,72 @@ export async function GET(request: NextRequest) {
     });
     
     // Generate live alerts data
-    const liveAlertsData = recentReports
+    const highOccupancyReports = recentReports
       .filter(r => r.occupancyPercentage > 75)
-      .slice(0, 10)
-      .map((report, index) => {
-        const status = occupancyToDashboardStatus(report.occupancyPercentage);
-        const priority = statusToAlertPriority(status);
-        const now = new Date();
-        const reportTime = new Date(report.createdAt);
-        const diffMs = now.getTime() - reportTime.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        
-        let alertType = 'High Crowd';
-        if (status === 'critical') alertType = 'Critical Crowd';
-        else if (status === 'high') alertType = 'High Crowd';
-        
-        return {
-          id: report._id.toString(),
-          type: alertType,
-          priority: priority as 'low' | 'medium' | 'high' | 'critical',
-          timestamp: diffMins < 1 ? 'Just now' : `${diffMins} min ago`,
-          location: report.stationId,
-          description: `${report.vehicleId} at ${report.stationId} exceeds ${report.occupancyPercentage}% capacity`,
-        };
-      });
+      .slice(0, 10);
     
-    // Generate activity timeline data
-    const activityTimelineData = recentReports.slice(0, 10).map((report, index) => {
+    // Get all unique station IDs
+    const stationIds = [...new Set(highOccupancyReports.map(r => r.stationId))];
+    const alertStations = await Station.find({ _id: { $in: stationIds } });
+    const stationMap = new Map(alertStations.map(s => [s._id.toString(), s.stationName]));
+    
+    const liveAlertsData = highOccupancyReports.map((report, index) => {
+      const status = occupancyToDashboardStatus(report.occupancyPercentage);
+      const priority = statusToAlertPriority(status);
       const now = new Date();
       const reportTime = new Date(report.createdAt);
       const diffMs = now.getTime() - reportTime.getTime();
       const diffMins = Math.floor(diffMs / 60000);
       
+      let alertType = 'High Crowd';
+      if (status === 'critical') alertType = 'Critical Crowd';
+      else if (status === 'high') alertType = 'High Crowd';
+      
+      // Get station name from map
+      const stationName = stationMap.get(report.stationId) || report.stationId;
+      
+      return {
+        id: report._id.toString(),
+        type: alertType,
+        priority: priority as 'low' | 'medium' | 'high' | 'critical',
+        timestamp: diffMins < 1 ? 'Just now' : `${diffMins} min ago`,
+        location: stationName,
+        description: `${report.vehicleId} at ${stationName} exceeds ${report.occupancyPercentage}% capacity`,
+      };
+    });
+    
+    // Generate activity timeline data
+    const activityReports = recentReports.slice(0, 10);
+    
+    // Get all unique station IDs for activity data
+    const activityStationIds = [...new Set(activityReports.map(r => r.stationId))];
+    const activityStations = await Station.find({ _id: { $in: activityStationIds } });
+    const activityStationMap = new Map(activityStations.map(s => [s._id.toString(), s.stationName]));
+    
+    const activityTimelineData = activityReports.map((report, index) => {
+      const now = new Date();
+      const reportTime = new Date(report.createdAt);
+      const diffMs = now.getTime() - reportTime.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      // Get station name from map
+      const stationName = activityStationMap.get(report.stationId) || report.stationId;
+      
       return {
         id: report._id.toString(),
         action: 'Passenger count updated',
         timestamp: diffMins < 1 ? 'Just now' : `${diffMins} min ago`,
-        details: `${report.vehicleId} at ${report.stationId} - ${report.passengerCount} passengers`,
+        details: `${report.vehicleId} at ${stationName} - ${report.passengerCount} passengers`,
       };
     });
     
-    // Generate map markers data (using station data)
-    const stations = await Station.find({ active: true }).limit(10);
-    const mapMarkersData = stations.map(station => {
+    // Generate map markers data (using station data - only Bengaluru stations)
+    const bengaluruStationCodes = ['MBS001', 'KMS001', 'IMS001', 'MGS001', 'YBS001', 'EBS001', 'BBS001', 'KRS001', 'WBS001', 'JDI001'];
+    const mapStations = await Station.find({ 
+      active: true,
+      stationCode: { $in: bengaluruStationCodes }
+    });
+    const mapMarkersData = mapStations.map(station => {
       const stationReports = recentReports.filter(r => r.stationId === station._id.toString());
       const latestOccupancy = stationReports.length > 0 ? stationReports[0].occupancyPercentage : 0;
       const status = occupancyToDashboardStatus(latestOccupancy);

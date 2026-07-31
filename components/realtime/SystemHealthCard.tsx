@@ -37,14 +37,36 @@ export default function SystemHealthCard({ compact = false }: SystemHealthCardPr
     return num.toString();
   };
 
+  // Show basic connection status even without server info
   if (!hasServerInfo) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex items-center gap-2 mb-3">
           <Server className="w-5 h-5 text-gray-400" />
           <h3 className="font-semibold text-gray-900">System Health</h3>
+          <div className={`ml-auto w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-yellow-500'}`} />
         </div>
-        <p className="text-sm text-gray-500">Waiting for server data...</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-gray-400" />
+            <div>
+              <p className="text-xs text-gray-500">Status</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {connected ? 'Connected' : 'Disconnected'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-gray-400" />
+            <div>
+              <p className="text-xs text-gray-500">Server</p>
+              <p className="text-sm font-semibold text-gray-900">Online</p>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">
+          {connected ? 'Real-time data available' : 'Login for detailed metrics'}
+        </p>
       </div>
     );
   }
