@@ -44,12 +44,22 @@ export function RealtimeProvider({ children, autoConnect = true }: RealtimeProvi
   }, []);
 
   // Connect to socket server
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (currentUser) {
-      // Get JWT token from localStorage (same as existing auth)
-      const token = localStorage.getItem('token');
-      if (token) {
-        socketService.connect(token);
+      // Get JWT token from API endpoint (cookie is httpOnly, so we need server to return it)
+      try {
+        console.log('[RealtimeProvider] Attempting to get token for socket connection...');
+        const response = await fetch('/api/auth/token');
+        const data = await response.json();
+        console.log('[RealtimeProvider] Token response:', data);
+        if (data.success && data.token) {
+          console.log('[RealtimeProvider] Token received, connecting to socket...');
+          socketService.connect(data.token);
+        } else {
+          console.error('[RealtimeProvider] Failed to get token:', data);
+        }
+      } catch (error) {
+        console.error('[RealtimeProvider] Failed to get token for socket connection:', error);
       }
     }
   }, [currentUser]);
@@ -100,9 +110,13 @@ export function RealtimeProvider({ children, autoConnect = true }: RealtimeProvi
       return;
     }
 
+    console.log('[RealtimeProvider] Auto-connect check - autoConnect:', autoConnect, 'currentUser:', !!currentUser);
+    
     if (autoConnect && currentUser) {
+      console.log('[RealtimeProvider] Calling connect()...');
       connect();
     } else if (!currentUser) {
+      console.log('[RealtimeProvider] No user, disconnecting...');
       disconnect();
     }
 

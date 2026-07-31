@@ -3,6 +3,7 @@ import { Server as HTTPServer } from 'http';
 import { Socket as SocketIOSocket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@/utils/eventNames';
+import { env } from '@/lib/env';
 
 type ExtendedSocket = SocketIOSocket & {
   userId?: string;
@@ -99,21 +100,26 @@ class SocketServer {
       try {
         const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
         
+        console.log('[Socket Server] Connection attempt, token present:', !!token);
+        
         if (!token) {
           this.log('Connection rejected: No token provided');
           return next(new Error('Authentication failed: No token provided'));
         }
 
         // Verify JWT token using existing JWT secret
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+        const decoded = jwt.verify(token, env.JWT_SECRET) as any;
+        
+        console.log('[Socket Server] Token decoded:', decoded);
         
         // Attach user info to socket
         socket.userId = decoded.userId;
-        socket.username = decoded.username;
+        socket.username = decoded.username || 'Unknown';
         
-        this.log(`User authenticated: ${decoded.username} (${decoded.userId})`);
+        this.log(`User authenticated: ${socket.username} (${socket.userId})`);
         next();
       } catch (error) {
+        console.error('[Socket Server] Authentication error:', error);
         this.log('Connection rejected: Invalid token');
         next(new Error('Authentication failed: Invalid token'));
       }

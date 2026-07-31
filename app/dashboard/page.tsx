@@ -18,6 +18,8 @@ import PredictionAlerts from '@/components/prediction/PredictionAlerts';
 import { Brain } from 'lucide-react';
 import ConnectionStatus from '@/components/realtime/ConnectionStatus';
 import SystemHealthCard from '@/components/realtime/SystemHealthCard';
+import { useCrowdRealtime } from '@/hooks/useCrowdRealtime';
+import { ICrowdStatistics } from '@/types/crowd';
 
 interface DashboardData {
   statCardsData: StatCardData[];
@@ -42,6 +44,69 @@ export default function DashboardPage() {
     refreshInterval: 30000,
   });
 
+  // Use realtime hook for crowd statistics
+  const { statistics: realtimeStats, isConnected, timeline, alerts } = useCrowdRealtime({
+    autoSync: true,
+    onDashboardUpdate: (stats) => {
+      // Update dashboard data when statistics change
+      if (data) {
+        setData((prev) => {
+          if (!prev) return prev;
+          // Update statistics-based cards
+          const updatedStatCards = [...prev.statCardsData];
+          updatedStatCards[0].value = stats.reportsToday; // Reports Today
+          updatedStatCards[1].value = Math.round(stats.averageOccupancy); // Average Occupancy
+          updatedStatCards[2].value = Math.round(stats.mostCrowdedVehicle?.occupancyPercentage || 0); // Highest Crowded
+          updatedStatCards[3].value = 0; // Lowest Crowded (placeholder)
+          updatedStatCards[4].value = stats.vehiclesOnline; // Vehicles Online
+          
+          return {
+            ...prev,
+            statCardsData: updatedStatCards,
+          };
+        });
+      }
+    },
+    onTimelineUpdate: (event) => {
+      // Update activity timeline when new events arrive
+      if (data) {
+        setData((prev) => {
+          if (!prev) return prev;
+          const newActivity: ActivityData = {
+            id: event.timestamp.getTime().toString(),
+            action: event.type,
+            timestamp: new Date(event.timestamp).toLocaleString(),
+            details: event.data ? JSON.stringify(event.data) : '',
+          };
+          return {
+            ...prev,
+            activityTimelineData: [newActivity, ...prev.activityTimelineData].slice(0, 100),
+          };
+        });
+      }
+    },
+    onAlertNew: (alert) => {
+      // Update alerts when new alerts arrive
+      if (data) {
+        setData((prev) => {
+          if (!prev) return prev;
+          const newAlert: AlertData = {
+            id: alert.timestamp.getTime().toString(),
+            type: alert.type === 'CRITICAL' ? 'High Crowd' : 'Platform Congestion',
+            priority: alert.type.toLowerCase() as 'low' | 'medium' | 'high' | 'critical',
+            timestamp: new Date(alert.timestamp).toLocaleString(),
+            location: alert.stationId || 'Unknown',
+            description: alert.message,
+          };
+          return {
+            ...prev,
+            liveAlertsData: [newAlert, ...prev.liveAlertsData].slice(0, 50),
+          };
+        });
+      }
+    },
+  });
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -64,10 +129,8 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchDashboardData();
     
-    // Auto-refresh every 15 seconds
-    const interval = setInterval(fetchDashboardData, 15000);
-    
-    return () => clearInterval(interval);
+    // No polling - realtime updates will handle crowd data changes
+    // Only keep polling for non-crowd data if needed
   }, []);
 
   if (error) {

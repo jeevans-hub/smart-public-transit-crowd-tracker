@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import { getCrowdReportById, deleteCrowdReport, toCrowdReportResponse } from '@/services/crowdService';
+import { getCrowdReportById, deleteCrowdReport, toCrowdReportResponse, getCrowdStatistics } from '@/services/crowdService';
 import { verifyToken } from '@/utils/helpers';
+import { socketServer } from '@/server/socket';
+import { SERVER_EVENTS } from '@/utils/eventNames';
 
 export async function GET(
   request: NextRequest,
@@ -58,6 +60,25 @@ export async function DELETE(
         { success: false, error: 'Crowd report not found' },
         { status: 404 }
       );
+    }
+    
+    const deletedResponse = toCrowdReportResponse(deleted);
+    
+    // Emit socket events after successful database operation
+    if (socketServer.isActive()) {
+      // Emit crowd:deleted
+      socketServer.broadcast(SERVER_EVENTS.CROWD_DELETED, { id: deletedResponse._id });
+      
+      // Emit dashboard:update
+      const statistics = await getCrowdStatistics();
+      socketServer.broadcast(SERVER_EVENTS.DASHBOARD_UPDATE, statistics);
+      
+      // Emit timeline:update
+      socketServer.broadcast(SERVER_EVENTS.TIMELINE_UPDATE, {
+        type: 'CROWD_REPORT_DELETED',
+        data: deletedResponse,
+        timestamp: new Date(),
+      });
     }
     
     return NextResponse.json({ success: true, message: 'Crowd report deleted successfully' });

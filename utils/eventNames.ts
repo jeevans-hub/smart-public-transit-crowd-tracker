@@ -8,6 +8,9 @@
 // Server to Client Events
 export const SERVER_EVENTS = {
   // Crowd monitoring events
+  CROWD_CREATED: 'crowd:created',
+  CROWD_UPDATED: 'crowd:updated',
+  CROWD_DELETED: 'crowd:deleted',
   CROWD_UPDATE: 'crowd:update',
   CROWD_ALERT: 'crowd:alert',
   
@@ -27,6 +30,9 @@ export const SERVER_EVENTS = {
   // Dashboard events
   DASHBOARD_UPDATE: 'dashboard:update',
   DASHBOARD_STATS: 'dashboard:stats',
+  
+  // Timeline events
+  TIMELINE_UPDATE: 'timeline:update',
   
   // System events
   SYSTEM_STATUS: 'system:status',

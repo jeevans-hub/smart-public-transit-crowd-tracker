@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import { createCrowdReport, getRecentReports, getCrowdStatistics, toCrowdReportResponse } from '@/services/crowdService';
 import { verifyToken } from '@/utils/helpers';
+import { socketServer } from '@/server/socket';
+import { SERVER_EVENTS } from '@/utils/eventNames';
+import { CROWD_THRESHOLDS } from '@/utils/constants';
 
 export async function GET(request: NextRequest) {
   try {
@@ -85,9 +88,40 @@ export async function POST(request: NextRequest) {
       reportSource,
     });
     
+    const reportResponse = toCrowdReportResponse(report);
+    
+    // Emit socket events after successful database operation
+    if (socketServer.isActive()) {
+      // Emit crowd:created
+      socketServer.broadcast(SERVER_EVENTS.CROWD_CREATED, reportResponse);
+      
+      // Emit dashboard:update
+      const statistics = await getCrowdStatistics();
+      socketServer.broadcast(SERVER_EVENTS.DASHBOARD_UPDATE, statistics);
+      
+      // Emit timeline:update
+      socketServer.broadcast(SERVER_EVENTS.TIMELINE_UPDATE, {
+        type: 'CROWD_REPORT_CREATED',
+        data: reportResponse,
+        timestamp: new Date(),
+      });
+      
+      // Emit alert:new if crowd is HIGH or CRITICAL (>= 80%)
+      if (reportResponse.occupancyPercentage >= CROWD_THRESHOLDS.HIGH) {
+        socketServer.broadcast(SERVER_EVENTS.ALERT_NEW, {
+          type: reportResponse.occupancyPercentage >= CROWD_THRESHOLDS.FULL ? 'CRITICAL' : 'HIGH',
+          message: `${reportResponse.stationId} reached ${reportResponse.occupancyPercentage}% capacity`,
+          stationId: reportResponse.stationId,
+          vehicleId: reportResponse.vehicleId,
+          occupancyPercentage: reportResponse.occupancyPercentage,
+          timestamp: new Date(),
+        });
+      }
+    }
+    
     return NextResponse.json({ 
       success: true, 
-      data: toCrowdReportResponse(report) 
+      data: reportResponse 
     }, { status: 201 });
   } catch (error) {
     return NextResponse.json(

@@ -33,7 +33,7 @@ class SocketService {
 
   private constructor(config: SocketConfig = {}) {
     this.config = {
-      url: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000',
+      url: process.env.NEXT_PUBLIC_SOCKET_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
       path: '/socket.io',
       reconnectionAttempts: 6,
       reconnectionDelay: 1000,
@@ -43,6 +43,7 @@ class SocketService {
       debug: process.env.NODE_ENV === 'development',
       ...config,
     };
+    console.log('[SocketService] Initialized with config:', this.config);
   }
 
   /**
@@ -81,8 +82,14 @@ class SocketService {
     // Add authentication token if provided
     if (token) {
       socketOptions.auth = { token };
+      console.log('[SocketService] Connecting with token, URL:', this.config.url);
+    } else {
+      console.warn('[SocketService] Connecting WITHOUT token');
     }
 
+    console.log('[SocketService] Creating socket instance with URL:', this.config.url);
+    console.log('[SocketService] Socket options:', socketOptions);
+    
     this.socket = io(this.config.url, socketOptions);
     this.setupEventHandlers();
     this.startHeartbeat();
@@ -130,12 +137,15 @@ class SocketService {
     this.socket.on(SERVER_EVENTS.PONG, (data: HeartbeatData) => this.handlePong(data));
     this.socket.on(SERVER_EVENTS.CLIENT_CONNECTED, (data: any) => this.handleClientConnected(data));
     this.socket.on(SERVER_EVENTS.CLIENT_DISCONNECTED, (data: any) => this.handleClientDisconnected(data));
+
+    console.log('[SocketService] Event handlers set up');
   }
 
   /**
    * Handle successful connection
    */
   private handleConnect(): void {
+    console.log('[SocketService] CONNECTED - Socket connected successfully');
     this.setConnectionState('CONNECTED');
     this.reconnectAttempts = 0;
     this.flushEventQueue();
@@ -159,6 +169,7 @@ class SocketService {
    * Handle connection error
    */
   private handleConnectError(error: Error): void {
+    console.error('[SocketService] CONNECTION ERROR:', error);
     this.setConnectionState('ERROR');
     this.log(`Connection error: ${error.message}`);
   }

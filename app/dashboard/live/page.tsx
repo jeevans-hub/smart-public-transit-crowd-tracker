@@ -10,76 +10,58 @@ import LiveStatsOverview from '@/components/crowd/LiveStatsOverview';
 import LiveReportCard from '@/components/crowd/LiveReportCard';
 import CrowdReportModal from '@/components/crowd/CrowdReportModal';
 import { ICrowdReportResponse, ICrowdStatistics, CrowdLevel, ReportSource } from '@/types/crowd';
-import { AUTO_REFRESH_INTERVAL, CROWD_LEVELS, REPORT_SOURCES } from '@/utils/constants';
+import { CROWD_LEVELS, REPORT_SOURCES } from '@/utils/constants';
 import { Plus, RefreshCw, Radio, Filter, SlidersHorizontal } from 'lucide-react';
+import { useCrowdRealtime } from '@/hooks/useCrowdRealtime';
+import { useLiveNotifications, LiveNotificationContainer } from '@/components/realtime/LiveNotification';
 
 export default function LiveDashboardPage() {
-  const [reports, setReports] = useState<ICrowdReportResponse[]>([]);
   const [filteredReports, setFilteredReports] = useState<ICrowdReportResponse[]>([]);
-  const [stats, setStats] = useState<ICrowdStatistics | null>(null);
-
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<string>('ALL');
   const [selectedSource, setSelectedSource] = useState<string>('ALL');
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; reportId: string | null }>({
     isOpen: false,
     reportId: null,
   });
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const fetchData = useCallback(async (isManualRefresh = false) => {
-    if (isManualRefresh) setRefreshing(true);
-    try {
-      const [reportsRes, statsRes] = await Promise.all([
-        fetch('/api/crowd?limit=50'),
-        fetch('/api/crowd?stats=true'),
-      ]);
-
-      if (reportsRes.ok) {
-        const reportsData = await reportsRes.json();
-        if (reportsData.success) {
-          setReports(reportsData.data || []);
-        }
+  // Use realtime hook for crowd data
+  const {
+    crowdReports,
+    statistics,
+    isConnected,
+    syncing,
+    connectionState,
+  } = useCrowdRealtime({
+    autoSync: true,
+    onCrowdCreated: (report) => {
+      // Trigger notification
+      if (report.occupancyPercentage >= 80) {
+        addNotification(
+          report.occupancyPercentage >= 90 ? 'critical' : 'warning',
+          'High Crowd Alert',
+          `${report.stationId} reached ${report.occupancyPercentage}% capacity`,
+          6000
+        );
       }
+    },
+    onCrowdDeleted: () => {
+      addNotification('information', 'Report Deleted', 'Crowd report has been removed', 4000);
+    },
+  });
 
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        if (statsData.success) {
-          setStats(statsData.data);
-        }
-      }
+  // Use live notifications
+  const { notifications, addNotification, removeNotification } = useLiveNotifications();
 
-      setLastRefreshed(new Date());
-    } catch (error) {
-      console.error('Failed to fetch live crowd data:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  // Update reports from realtime
+  const [reports, setReports] = useState<ICrowdReportResponse[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Initial fetch and auto-refresh interval
   useEffect(() => {
-    fetchData();
-
-    if (autoRefresh) {
-      timerRef.current = setInterval(() => {
-        fetchData();
-      }, AUTO_REFRESH_INTERVAL);
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [autoRefresh, fetchData]);
+    setReports(crowdReports);
+    setLoading(false);
+  }, [crowdReports]);
 
   // Apply Search & Filter
   useEffect(() => {
@@ -119,9 +101,8 @@ export default function LiveDashboardPage() {
         method: 'DELETE',
       });
       if (res.ok) {
-        setReports((prev) => prev.filter((r) => r._id !== deleteDialog.reportId));
         setDeleteDialog({ isOpen: false, reportId: null });
-        fetchData();
+        // Realtime hook will handle the update via socket event
       }
     } catch (err) {
       console.error('Failed to delete report:', err);
@@ -151,55 +132,42 @@ export default function LiveDashboardPage() {
         }
       />
 
-      {/* Auto-Refresh Bar & Control */}
+      {/* Realtime Connection Status Bar */}
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-3">
-              {autoRefresh && (
+              {isConnected && (
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               )}
               <span
                 className={`relative inline-flex rounded-full h-3 w-3 ${
-                  autoRefresh ? 'bg-emerald-500' : 'bg-gray-400'
+                  isConnected ? 'bg-emerald-500' : 'bg-gray-400'
                 }`}
               ></span>
             </span>
             <span className="text-sm font-semibold text-gray-900">
-              {autoRefresh ? 'Live Monitoring Active' : 'Auto-Refresh Paused'}
+              {isConnected ? 'Realtime Connected' : 'Realtime Disconnected'}
             </span>
+            {syncing && (
+              <span className="text-xs text-blue-600 ml-2">Syncing...</span>
+            )}
           </div>
 
           <span className="text-xs text-gray-500 hidden sm:inline border-l border-gray-200 pl-3">
-            Last updated: {lastRefreshed.toLocaleTimeString()}
+            Status: {connectionState}
           </span>
         </div>
 
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
-            />
-            Auto-refresh (30s)
-          </label>
-
-          <button
-            onClick={() => fetchData(true)}
-            disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-            title="Refresh now"
-          >
-            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            <span>Refresh</span>
-          </button>
+          <div className="text-xs text-gray-500">
+            {isConnected ? 'Live updates enabled' : 'Reconnecting...'}
+          </div>
         </div>
       </div>
 
       {/* Live Statistics Overview Cards */}
-      <LiveStatsOverview stats={stats} />
+      <LiveStatsOverview stats={statistics} />
 
       {/* Controls: Search and Filters */}
       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4">
@@ -294,7 +262,10 @@ export default function LiveDashboardPage() {
       <CrowdReportModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={() => fetchData()}
+        onSuccess={() => {
+          // Realtime hook will handle the update via socket event
+          addNotification('success', 'Report Submitted', 'Crowd report created successfully', 4000);
+        }}
       />
 
       {/* Confirm Delete Dialog */}
@@ -305,6 +276,13 @@ export default function LiveDashboardPage() {
         onConfirm={confirmDelete}
         onCancel={() => setDeleteDialog({ isOpen: false, reportId: null })}
         isDestructive
+      />
+
+      {/* Live Notifications */}
+      <LiveNotificationContainer
+        notifications={notifications}
+        onClose={removeNotification}
+        position="top-right"
       />
     </div>
   );
