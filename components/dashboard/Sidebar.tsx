@@ -11,7 +11,8 @@ import {
   X,
   ChevronDown,
   Brain,
-  Radio
+  Radio,
+  Settings
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,6 +41,18 @@ const navItems = [
     label: 'AI Predictions', 
     icon: Brain,
     description: 'Crowd forecasting engine'
+  },
+  { 
+    href: '/dashboard/analytics', 
+    label: 'Analytics', 
+    icon: LayoutDashboard,
+    description: 'Historical analytics'
+  },
+  { 
+    href: '/dashboard/operations', 
+    label: 'Operations', 
+    icon: Settings,
+    description: 'Fleet management & maintenance'
   },
   { 
     href: '/dashboard/stations', 
