@@ -57,6 +57,45 @@ export function usePredictionRealtime(
   
   const unsubscribersRef = useRef<(() => void)[]>([]);
   const isMountedRef = useRef(true);
+  const callbacksRef = useRef({
+    onPredictionGenerated,
+    onPredictionUpdated,
+    onPredictionDeleted,
+    onTrendChanged,
+    onConfidenceChanged,
+    onAnomalyDetected,
+    onAlert,
+    onInsight,
+    onDashboardUpdate,
+    onTimelineUpdate,
+  });
+
+  // Update callbacks ref when they change
+  useEffect(() => {
+    callbacksRef.current = {
+      onPredictionGenerated,
+      onPredictionUpdated,
+      onPredictionDeleted,
+      onTrendChanged,
+      onConfidenceChanged,
+      onAnomalyDetected,
+      onAlert,
+      onInsight,
+      onDashboardUpdate,
+      onTimelineUpdate,
+    };
+  }, [
+    onPredictionGenerated,
+    onPredictionUpdated,
+    onPredictionDeleted,
+    onTrendChanged,
+    onConfidenceChanged,
+    onAnomalyDetected,
+    onAlert,
+    onInsight,
+    onDashboardUpdate,
+    onTimelineUpdate,
+  ]);
 
   const fetchPredictions = useCallback(async () => {
     try {
@@ -156,11 +195,11 @@ export function usePredictionRealtime(
         return [prediction, ...prev];
       });
       
-      if (onPredictionGenerated) {
-        onPredictionGenerated(prediction);
+      if (callbacksRef.current.onPredictionGenerated) {
+        callbacksRef.current.onPredictionGenerated(prediction);
       }
     }
-  }, [onPredictionGenerated]);
+  }, []);
 
   // Handle prediction updated event
   const handlePredictionUpdated = useCallback((prediction: IPredictionResponse) => {
@@ -169,22 +208,22 @@ export function usePredictionRealtime(
         prev.map((p) => (p._id === prediction._id ? prediction : p))
       );
       
-      if (onPredictionUpdated) {
-        onPredictionUpdated(prediction);
+      if (callbacksRef.current.onPredictionUpdated) {
+        callbacksRef.current.onPredictionUpdated(prediction);
       }
     }
-  }, [onPredictionUpdated]);
+  }, []);
 
   // Handle prediction deleted event
   const handlePredictionDeleted = useCallback((data: { id: string; stationId: string }) => {
     if (isMountedRef.current) {
       setPredictions((prev) => prev.filter((p) => p._id !== data.id));
       
-      if (onPredictionDeleted) {
-        onPredictionDeleted(data);
+      if (callbacksRef.current.onPredictionDeleted) {
+        callbacksRef.current.onPredictionDeleted(data);
       }
     }
-  }, [onPredictionDeleted]);
+  }, []);
 
   // Handle trend changed event
   const handleTrendChanged = useCallback((data: {
@@ -202,11 +241,11 @@ export function usePredictionRealtime(
         )
       );
       
-      if (onTrendChanged) {
-        onTrendChanged(data);
+      if (callbacksRef.current.onTrendChanged) {
+        callbacksRef.current.onTrendChanged(data);
       }
     }
-  }, [onTrendChanged]);
+  }, []);
 
   // Handle confidence changed event
   const handleConfidenceChanged = useCallback((data: {
@@ -224,11 +263,11 @@ export function usePredictionRealtime(
         )
       );
       
-      if (onConfidenceChanged) {
-        onConfidenceChanged(data);
+      if (callbacksRef.current.onConfidenceChanged) {
+        callbacksRef.current.onConfidenceChanged(data);
       }
     }
-  }, [onConfidenceChanged]);
+  }, []);
 
   // Handle anomaly detected event
   const handleAnomalyDetected = useCallback((data: {
@@ -236,10 +275,10 @@ export function usePredictionRealtime(
     stationName: string;
     anomaly: any;
   }) => {
-    if (onAnomalyDetected) {
-      onAnomalyDetected(data);
+    if (callbacksRef.current.onAnomalyDetected) {
+      callbacksRef.current.onAnomalyDetected(data);
     }
-  }, [onAnomalyDetected]);
+  }, []);
 
   // Handle alert event
   const handleAlert = useCallback((data: {
@@ -249,10 +288,10 @@ export function usePredictionRealtime(
     message: string;
     severity: string;
   }) => {
-    if (onAlert) {
-      onAlert(data);
+    if (callbacksRef.current.onAlert) {
+      callbacksRef.current.onAlert(data);
     }
-  }, [onAlert]);
+  }, []);
 
   // Handle insight event
   const handleInsight = useCallback((data: {
@@ -260,24 +299,24 @@ export function usePredictionRealtime(
     stationName: string;
     insight: any;
   }) => {
-    if (onInsight) {
-      onInsight(data);
+    if (callbacksRef.current.onInsight) {
+      callbacksRef.current.onInsight(data);
     }
-  }, [onInsight]);
+  }, []);
 
   // Handle dashboard update event
   const handleDashboardUpdate = useCallback((data: any) => {
-    if (onDashboardUpdate) {
-      onDashboardUpdate(data);
+    if (callbacksRef.current.onDashboardUpdate) {
+      callbacksRef.current.onDashboardUpdate(data);
     }
-  }, [onDashboardUpdate]);
+  }, []);
 
   // Handle timeline update event
   const handleTimelineUpdate = useCallback((event: any) => {
-    if (onTimelineUpdate) {
-      onTimelineUpdate(event);
+    if (callbacksRef.current.onTimelineUpdate) {
+      callbacksRef.current.onTimelineUpdate(event);
     }
-  }, [onTimelineUpdate]);
+  }, []);
 
   // Set up socket subscriptions
   useEffect(() => {
@@ -302,20 +341,7 @@ export function usePredictionRealtime(
     return () => {
       unsubscribers.forEach((unsub) => unsub());
     };
-  }, [
-    autoSync,
-    subscribe,
-    handlePredictionGenerated,
-    handlePredictionUpdated,
-    handlePredictionDeleted,
-    handleTrendChanged,
-    handleConfidenceChanged,
-    handleAnomalyDetected,
-    handleAlert,
-    handleInsight,
-    handleDashboardUpdate,
-    handleTimelineUpdate,
-  ]);
+  }, [autoSync, subscribe]);
 
   // Initial fetch
   useEffect(() => {

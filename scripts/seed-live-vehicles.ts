@@ -6,52 +6,58 @@ import { determineVehicleStatus } from '../utils/vehicleStatus';
 
 dotenv.config({ path: '.env.local' });
 
-// Realistic transit vehicle data
-const vehicleTypes = ['Electric Bus', 'Hybrid Bus', 'Diesel Bus', 'Articulated Bus'];
-const routes = ['Route 101', 'Route 102', 'Route 103', 'Route 201', 'Route 202', 'Route 301', 'Route 302'];
+// BMTC & KSRTC vehicle data
+const vehicleTypes = ['BMTC Bus', 'BMTC AC Bus', 'BMTC Vajra (AC Volvo)', 'KSRTC Bus', 'KSRTC AC Bus', 'KSRTC Rajahamsa'];
+const bmtcRoutes = ['500', '500A', '335', '335E', 'KIA-7', 'KIA-8', '378', '378A', '378C', '378K', '378M', '378P', '378R', '378V', '378W'];
+const ksrtcRoutes = ['KA-01', 'KA-02', 'KA-03', 'KA-04', 'KA-05', 'KA-06', 'KA-07', 'KA-08', 'KA-09', 'KA-10'];
 const stations = [
-  'Central Station',
-  'North Terminal',
-  'South Plaza',
-  'East Gate',
-  'West End',
-  'Downtown',
-  'Airport',
-  'University',
-  'Hospital',
-  'Shopping Mall',
-  'Sports Complex',
-  'Industrial Park',
-  'Residential Area',
-  'Business District',
-  'Tech Hub',
+  'Majestic Bus Station (Kempegowda Bus Station)',
+  'Shivajinagar Bus Station',
+  'Koramangala Bus Stand',
+  'Indiranagar Bus Station',
+  'Electronic City Bus Terminal',
+  'Yelahanka Bus Station',
+  'Banashankari Bus Station',
+  'Jayanagar Bus Station',
+  'MG Road Bus Stop',
+  'KR Market Bus Station',
+  'KIA Airport Bus Terminal',
+  'Peenya Industrial Area',
+  'Whitefield Bus Station',
+  'HSR Layout Bus Stop',
+  'BTM Layout Bus Station',
 ];
 
 const driverNames = [
-  'John Smith',
-  'Maria Garcia',
-  'David Johnson',
-  'Sarah Williams',
-  'Michael Brown',
-  'Emily Davis',
-  'James Wilson',
-  'Jennifer Martinez',
-  'Robert Anderson',
-  'Lisa Taylor',
-  'William Thomas',
-  'Jessica Jackson',
-  'Christopher White',
-  'Amanda Harris',
-  'Daniel Martin',
+  'Ramesh Kumar',
+  'Suresh Reddy',
+  'Venkatesh Murthy',
+  'Krishnaiah',
+  'Mohan Das',
+  'Rajesh Nair',
+  'Srinivasan',
+  'Balakrishna',
+  'Chandrasekhar',
+  'Venkataramana',
+  'Nagaraj',
+  'Siddaramaiah',
+  'Manjunath',
+  'Ravi Kumar',
+  'Prakash',
 ];
 
-// NYC area coordinates for realistic positioning
+// Bengaluru area coordinates for realistic positioning
 const baseCoordinates = [
-  { lat: 40.7128, lng: -74.0060 }, // NYC
-  { lat: 40.7589, lng: -73.9851 }, // Times Square
-  { lat: 40.7484, lng: -73.9857 }, // Empire State
-  { lat: 40.7614, lng: -73.9776 }, // Central Park
-  { lat: 40.6892, lng: -74.0445 }, // Statue of Liberty
+  { lat: 12.9716, lng: 77.5946 }, // Bengaluru City Center
+  { lat: 12.9352, lng: 77.6245 }, // Majestic Bus Station
+  { lat: 12.9784, lng: 77.6408 }, // Indiranagar
+  { lat: 12.9141, lng: 77.6101 }, // Jayanagar
+  { lat: 12.9356, lng: 77.5355 }, // Yeshwanthpur
+  { lat: 12.9767, lng: 77.5713 }, // Shivajinagar
+  { lat: 12.9081, lng: 77.5970 }, // Basavanagudi
+  { lat: 12.9724, lng: 77.5806 }, // MG Road
+  { lat: 12.9304, lng: 77.5837 }, // Malleshwaram
+  { lat: 12.9168, lng: 77.5951 }, // Chamrajpet
 ];
 
 function getRandomItem<T>(array: T[]): T {
@@ -75,11 +81,18 @@ function generateVehicleData(index: number) {
   const currentStation = getRandomItem(stations);
   const nextStation = getRandomItem(stations.filter(s => s !== currentStation));
   
+  // Alternate between BMTC and KSRTC routes
+  const isBMTC = index < 8; // First 8 vehicles are BMTC
+  const route = isBMTC ? getRandomItem(bmtcRoutes) : getRandomItem(ksrtcRoutes);
+  const vehicleType = isBMTC 
+    ? getRandomItem(['BMTC Bus', 'BMTC AC Bus', 'BMTC Vajra (AC Volvo)'])
+    : getRandomItem(['KSRTC Bus', 'KSRTC AC Bus', 'KSRTC Rajahamsa']);
+  
   return {
     vehicleId: `VH-${String(index + 1).padStart(4, '0')}`,
-    vehicleNumber: `BUS-${1000 + index}`,
-    vehicleType: getRandomItem(vehicleTypes),
-    route: getRandomItem(routes),
+    vehicleNumber: isBMTC ? `KA-57-${String(index + 1).padStart(2, '0')}` : `KA-01-${String(index + 1).padStart(2, '0')}`,
+    vehicleType,
+    route,
     driverName: getRandomItem(driverNames),
     currentStation,
     nextStation,
@@ -105,9 +118,9 @@ async function seedLiveVehicles() {
     console.log(`\nCurrent document count: ${count}`);
 
     if (count > 0) {
-      console.log('✗ Collection already has documents. Skipping seed.');
-      console.log('To re-seed, clear the collection first.');
-      process.exit(0);
+      console.log('Clearing existing documents...');
+      await LiveVehicle.deleteMany({});
+      console.log('✓ Cleared existing documents');
     }
 
     console.log('\n=== SEEDING LIVE VEHICLES ===');
