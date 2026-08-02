@@ -40,12 +40,27 @@ export const TrendChart: React.FC<TrendChartProps> = ({ data, type, title, loadi
     );
   }
 
-  const chartData = data.map((item: any) => ({
-    time: item.timestamp instanceof Date ? item.timestamp.toLocaleTimeString() : item.date.toLocaleDateString(),
-    value: item.count || item.occupancy || item.activeVehicles || item.accuracy || item.value,
-    ...(type === 'vehicle' && { speed: item.averageSpeed, occupancy: item.averageOccupancy }),
-    ...(type === 'prediction' && { confidence: item.confidence }),
-  }));
+  const chartData = data.map((item: any) => {
+    let time: string;
+    if (item.timestamp instanceof Date) {
+      time = item.timestamp.toLocaleTimeString();
+    } else if (item.date instanceof Date) {
+      time = item.date.toLocaleDateString();
+    } else if (typeof item.date === 'string') {
+      time = item.date;
+    } else if (typeof item.timestamp === 'string') {
+      time = item.timestamp;
+    } else {
+      time = 'Unknown';
+    }
+
+    return {
+      time,
+      value: item.count || item.occupancy || item.activeVehicles || item.accuracy || item.value,
+      ...(type === 'vehicle' && { speed: item.averageSpeed, occupancy: item.averageOccupancy }),
+      ...(type === 'prediction' && { confidence: item.confidence }),
+    };
+  });
 
   const renderChart = () => {
     switch (type) {

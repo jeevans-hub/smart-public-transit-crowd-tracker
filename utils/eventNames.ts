@@ -54,6 +54,18 @@ export const SERVER_EVENTS = {
   // Heartbeat
   HEARTBEAT: 'heartbeat',
   PONG: 'pong',
+  
+  // Digital Twin events
+  CITY_UPDATE: 'city:update',
+  DIGITAL_TWIN_UPDATE: 'digitalTwin:update',
+  SIMULATION_UPDATE: 'simulation:update',
+  RESOURCE_UPDATE: 'resource:update',
+  FLEET_UPDATE: 'fleet:update',
+  SYSTEM_UPDATE: 'system:update',
+  CONTROL_CENTER_UPDATE: 'controlcenter:update',
+  CITY_HEALTH_UPDATE: 'cityHealth:update',
+  NETWORK_GRAPH_UPDATE: 'networkGraph:update',
+  RECOMMENDATION_UPDATE: 'recommendation:update',
 } as const;
 
 // Client to Server Events
@@ -77,6 +89,14 @@ export const CLIENT_EVENTS = {
   // Connection
   JOIN_ROOM: 'join:room',
   LEAVE_ROOM: 'leave:room',
+  
+  // Digital Twin subscriptions
+  SUBSCRIBE_DIGITAL_TWIN: 'subscribe:digitalTwin',
+  UNSUBSCRIBE_DIGITAL_TWIN: 'unsubscribe:digitalTwin',
+  SUBSCRIBE_CITY: 'subscribe:city',
+  UNSUBSCRIBE_CITY: 'unsubscribe:city',
+  SUBSCRIBE_SIMULATION: 'subscribe:simulation',
+  UNSUBSCRIBE_SIMULATION: 'unsubscribe:simulation',
 } as const;
 
 // Room Names

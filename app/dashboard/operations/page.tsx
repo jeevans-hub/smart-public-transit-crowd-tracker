@@ -15,7 +15,7 @@ import { CostAnalysisCard } from '@/components/operations/CostAnalysisCard';
 import { FleetEfficiencyChart } from '@/components/operations/FleetEfficiencyChart';
 import { MaintenanceSchedule as MaintenanceScheduleComponent } from '@/components/operations/MaintenanceSchedule';
 import { DateRange, OperationsFilters as OperationsFiltersType } from '@/types/operations';
-import { Calendar, Filter, Download, RefreshCw, Search } from 'lucide-react';
+import { Calendar, Filter, Download, RefreshCw, Search, X } from 'lucide-react';
 
 export default function OperationsPage() {
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange>('LAST_7_DAYS');
@@ -49,8 +49,35 @@ export default function OperationsPage() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    // In production, this would filter the displayed data
   };
+
+  // Filter data based on search query
+  const filteredVehicleHealth = vehicleHealth.filter(vehicle =>
+    vehicle.vehicleNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    vehicle.vehicleType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    vehicle.route.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredRouteOptimizations = routeOptimizations.filter(route =>
+    route.routeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    route.routeId.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredDelayPredictions = delayPredictions.filter(prediction =>
+    prediction.vehicleNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    prediction.route.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredMaintenancePredictions = maintenancePredictions.filter(prediction =>
+    prediction.vehicleNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    prediction.vehicleType.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredRecommendations = recommendations.filter(rec =>
+    rec.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    rec.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (rec.targetName && rec.targetName.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const handleDismissRecommendation = (id: string) => {
     console.log('Dismissing recommendation:', id);
@@ -100,11 +127,19 @@ export default function OperationsPage() {
                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search vehicles, routes..."
+                  placeholder="Search vehicles, routes, recommendations..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-10 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 text-gray-900 placeholder-gray-400"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => handleSearch('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
@@ -125,9 +160,23 @@ export default function OperationsPage() {
 
           {/* Date Range Selector */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">Date Range:</span>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">Date Range:</span>
+              </div>
+              {searchQuery && (
+                <div className="flex items-center gap-2 text-sm text-blue-600">
+                  <Search className="w-4 h-4" />
+                  <span>Searching: "{searchQuery}"</span>
+                  <button
+                    onClick={() => handleSearch('')}
+                    className="hover:text-blue-800"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               {(['TODAY', 'YESTERDAY', 'LAST_7_DAYS', 'LAST_30_DAYS', 'LAST_90_DAYS'] as DateRange[]).map((range) => (
@@ -163,24 +212,24 @@ export default function OperationsPage() {
 
           {/* Risk and Predictions Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <MaintenanceRiskCard predictions={maintenancePredictions} loading={loading} />
-            <DelayPredictionCard predictions={delayPredictions} loading={loading} />
+            <MaintenanceRiskCard predictions={filteredMaintenancePredictions} loading={loading} />
+            <DelayPredictionCard predictions={filteredDelayPredictions} loading={loading} />
           </div>
 
           {/* Route Optimization and Cost Analysis */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <RouteOptimizationCard optimizations={routeOptimizations} loading={loading} />
+            <RouteOptimizationCard optimizations={filteredRouteOptimizations} loading={loading} />
             <CostAnalysisCard costAnalysis={costAnalysis} loading={loading} />
           </div>
 
           {/* Vehicle Health Table */}
           <div className="mb-6">
-            <VehicleHealthTable vehicles={vehicleHealth} loading={loading} />
+            <VehicleHealthTable vehicles={filteredVehicleHealth} loading={loading} />
           </div>
 
           {/* AI Recommendations */}
           <div className="mb-6">
-            <AIRecommendations recommendations={recommendations} loading={loading} />
+            <AIRecommendations recommendations={filteredRecommendations} loading={loading} />
           </div>
 
           {/* Maintenance Schedule */}

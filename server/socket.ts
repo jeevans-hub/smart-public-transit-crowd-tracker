@@ -173,6 +173,12 @@ class SocketServer {
     socket.on(CLIENT_EVENTS.AUTHENTICATE, (data: any) => this.handleAuthenticate(socket, data));
     socket.on(CLIENT_EVENTS.JOIN_ROOM, (room: string) => this.handleJoinRoom(socket, room));
     socket.on(CLIENT_EVENTS.LEAVE_ROOM, (room: string) => this.handleLeaveRoom(socket, room));
+    socket.on(CLIENT_EVENTS.SUBSCRIBE_DIGITAL_TWIN, (data: any) => this.handleSubscribeDigitalTwin(socket, data));
+    socket.on(CLIENT_EVENTS.UNSUBSCRIBE_DIGITAL_TWIN, (data: any) => this.handleUnsubscribeDigitalTwin(socket, data));
+    socket.on(CLIENT_EVENTS.SUBSCRIBE_CITY, (data: any) => this.handleSubscribeCity(socket, data));
+    socket.on(CLIENT_EVENTS.UNSUBSCRIBE_CITY, (data: any) => this.handleUnsubscribeCity(socket, data));
+    socket.on(CLIENT_EVENTS.SUBSCRIBE_SIMULATION, (data: any) => this.handleSubscribeSimulation(socket, data));
+    socket.on(CLIENT_EVENTS.UNSUBSCRIBE_SIMULATION, (data: any) => this.handleUnsubscribeSimulation(socket, data));
     socket.on('disconnect', (reason) => this.handleDisconnect(socket, reason));
     socket.on('error', (error) => this.handleError(socket, error));
 
@@ -496,6 +502,216 @@ class SocketServer {
     if (this.debugMode) {
       this.log(`Timeline event: ${event.type}`);
     }
+  }
+
+  /**
+   * Handle digital twin subscription
+   */
+  private handleSubscribeDigitalTwin(socket: ExtendedSocket, data: any): void {
+    this.metrics.messagesReceived++;
+    const { cityId } = data;
+    
+    if (cityId) {
+      socket.join(`digital-twin:${cityId}`);
+      this.log(`Client ${socket.id} subscribed to digital twin for city ${cityId}`);
+    }
+    
+    this.metrics.messagesSent++;
+  }
+
+  /**
+   * Handle digital twin unsubscription
+   */
+  private handleUnsubscribeDigitalTwin(socket: ExtendedSocket, data: any): void {
+    this.metrics.messagesReceived++;
+    const { cityId } = data;
+    
+    if (cityId) {
+      socket.leave(`digital-twin:${cityId}`);
+      this.log(`Client ${socket.id} unsubscribed from digital twin for city ${cityId}`);
+    }
+    
+    this.metrics.messagesSent++;
+  }
+
+  /**
+   * Handle city subscription
+   */
+  private handleSubscribeCity(socket: ExtendedSocket, data: any): void {
+    this.metrics.messagesReceived++;
+    const { cityId } = data;
+    
+    if (cityId) {
+      socket.join(`city:${cityId}`);
+      this.log(`Client ${socket.id} subscribed to city ${cityId}`);
+    }
+    
+    this.metrics.messagesSent++;
+  }
+
+  /**
+   * Handle city unsubscription
+   */
+  private handleUnsubscribeCity(socket: ExtendedSocket, data: any): void {
+    this.metrics.messagesReceived++;
+    const { cityId } = data;
+    
+    if (cityId) {
+      socket.leave(`city:${cityId}`);
+      this.log(`Client ${socket.id} unsubscribed from city ${cityId}`);
+    }
+    
+    this.metrics.messagesSent++;
+  }
+
+  /**
+   * Handle simulation subscription
+   */
+  private handleSubscribeSimulation(socket: ExtendedSocket, data: any): void {
+    this.metrics.messagesReceived++;
+    const { simulationId } = data;
+    
+    if (simulationId) {
+      socket.join(`simulation:${simulationId}`);
+      this.log(`Client ${socket.id} subscribed to simulation ${simulationId}`);
+    }
+    
+    this.metrics.messagesSent++;
+  }
+
+  /**
+   * Handle simulation unsubscription
+   */
+  private handleUnsubscribeSimulation(socket: ExtendedSocket, data: any): void {
+    this.metrics.messagesReceived++;
+    const { simulationId } = data;
+    
+    if (simulationId) {
+      socket.leave(`simulation:${simulationId}`);
+      this.log(`Client ${socket.id} unsubscribed from simulation ${simulationId}`);
+    }
+    
+    this.metrics.messagesSent++;
+  }
+
+  /**
+   * Broadcast digital twin update
+   */
+  public broadcastDigitalTwinUpdate(cityId: string, data: any): void {
+    this.io?.to(`digital-twin:${cityId}`).emit(SERVER_EVENTS.DIGITAL_TWIN_UPDATE, {
+      cityId,
+      ...data,
+      timestamp: new Date(),
+    });
+    this.log(`Digital twin update for city ${cityId}`);
+  }
+
+  /**
+   * Broadcast city update
+   */
+  public broadcastCityUpdate(cityId: string, data: any): void {
+    this.io?.to(`city:${cityId}`).emit(SERVER_EVENTS.CITY_UPDATE, {
+      cityId,
+      ...data,
+      timestamp: new Date(),
+    });
+    this.log(`City update for ${cityId}`);
+  }
+
+  /**
+   * Broadcast simulation update
+   */
+  public broadcastSimulationUpdate(simulationId: string, data: any): void {
+    this.io?.to(`simulation:${simulationId}`).emit(SERVER_EVENTS.SIMULATION_UPDATE, {
+      simulationId,
+      ...data,
+      timestamp: new Date(),
+    });
+    this.log(`Simulation update for ${simulationId}`);
+  }
+
+  /**
+   * Broadcast resource update
+   */
+  public broadcastResourceUpdate(cityId: string, data: any): void {
+    this.io?.to(`digital-twin:${cityId}`).emit(SERVER_EVENTS.RESOURCE_UPDATE, {
+      cityId,
+      ...data,
+      timestamp: new Date(),
+    });
+    this.log(`Resource update for city ${cityId}`);
+  }
+
+  /**
+   * Broadcast fleet update
+   */
+  public broadcastFleetUpdate(cityId: string, data: any): void {
+    this.io?.to(`digital-twin:${cityId}`).emit(SERVER_EVENTS.FLEET_UPDATE, {
+      cityId,
+      ...data,
+      timestamp: new Date(),
+    });
+    this.log(`Fleet update for city ${cityId}`);
+  }
+
+  /**
+   * Broadcast system update
+   */
+  public broadcastSystemUpdate(cityId: string, data: any): void {
+    this.io?.to(`digital-twin:${cityId}`).emit(SERVER_EVENTS.SYSTEM_UPDATE, {
+      cityId,
+      ...data,
+      timestamp: new Date(),
+    });
+    this.log(`System update for city ${cityId}`);
+  }
+
+  /**
+   * Broadcast control center update
+   */
+  public broadcastControlCenterUpdate(centerId: string, data: any): void {
+    this.broadcast(SERVER_EVENTS.CONTROL_CENTER_UPDATE, {
+      centerId,
+      ...data,
+      timestamp: new Date(),
+    });
+    this.log(`Control center update for ${centerId}`);
+  }
+
+  /**
+   * Broadcast city health update
+   */
+  public broadcastCityHealthUpdate(cityId: string, data: any): void {
+    this.io?.to(`city:${cityId}`).emit(SERVER_EVENTS.CITY_HEALTH_UPDATE, {
+      cityId,
+      ...data,
+      timestamp: new Date(),
+    });
+    this.log(`City health update for ${cityId}`);
+  }
+
+  /**
+   * Broadcast network graph update
+   */
+  public broadcastNetworkGraphUpdate(cityId: string, data: any): void {
+    this.io?.to(`digital-twin:${cityId}`).emit(SERVER_EVENTS.NETWORK_GRAPH_UPDATE, {
+      cityId,
+      ...data,
+      timestamp: new Date(),
+    });
+    this.log(`Network graph update for city ${cityId}`);
+  }
+
+  /**
+   * Broadcast recommendation update
+   */
+  public broadcastRecommendationUpdate(cityId: string, data: any): void {
+    this.io?.to(`digital-twin:${cityId}`).emit(SERVER_EVENTS.RECOMMENDATION_UPDATE, {
+      cityId,
+      ...data,
+      timestamp: new Date(),
+    });
+    this.log(`Recommendation update for city ${cityId}`);
   }
 }
 

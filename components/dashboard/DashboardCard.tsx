@@ -24,3 +24,15 @@ export default function DashboardCard({ children, className = '', title, action 
     </div>
   );
 }
+
+// Export named components for compatibility
+export const Card = DashboardCard;
+export const CardHeader = ({ children }: { children: ReactNode }) => (
+  <div className="px-6 py-4 border-b border-gray-200">{children}</div>
+);
+export const CardTitle = ({ children }: { children: ReactNode }) => (
+  <h3 className="text-lg font-semibold text-gray-900">{children}</h3>
+);
+export const CardContent = ({ children, className }: { children: ReactNode; className?: string }) => (
+  <div className={`p-6 ${className || ''}`}>{children}</div>
+);

@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Agency } from '@/types/agency';
+import { Agency, CreateAgencyDTO } from '@/types/agency';
 import AgencyCard from '@/components/cards/AgencyCard';
 import PageHeader from '@/components/dashboard/PageHeader';
 import SearchBar from '@/components/dashboard/SearchBar';
 import LoadingSpinner from '@/components/dashboard/LoadingSpinner';
 import EmptyState from '@/components/dashboard/EmptyState';
 import ConfirmDialog from '@/components/dashboard/ConfirmDialog';
+import AgencyForm from '@/components/dashboard/AgencyForm';
 import { Building2, Plus } from 'lucide-react';
 
 export default function AgenciesPage() {
@@ -16,6 +17,10 @@ export default function AgenciesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; agency: Agency | null }>({
+    isOpen: false,
+    agency: null,
+  });
+  const [formDialog, setFormDialog] = useState<{ isOpen: boolean; agency: Agency | null }>({
     isOpen: false,
     agency: null,
   });
@@ -73,6 +78,44 @@ export default function AgenciesPage() {
     }
   }
 
+  async function handleEdit(agency: Agency) {
+    setFormDialog({ isOpen: true, agency });
+  }
+
+  async function handleAdd() {
+    setFormDialog({ isOpen: true, agency: null });
+  }
+
+  async function handleFormSubmit(data: CreateAgencyDTO) {
+    if (formDialog.agency) {
+      // Update existing agency
+      const res = await fetch(`/api/agencies/${formDialog.agency._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success) {
+          setAgencies(agencies.map((a) => a._id === formDialog.agency?._id ? result.data : a));
+        }
+      }
+    } else {
+      // Create new agency
+      const res = await fetch('/api/agencies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success) {
+          setAgencies([...agencies, result.data]);
+        }
+      }
+    }
+  }
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -83,7 +126,7 @@ export default function AgenciesPage() {
         title="Agencies"
         subtitle="Manage transit agencies"
         action={
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             <Plus size={20} />
             <span>Add Agency</span>
           </button>
@@ -107,7 +150,7 @@ export default function AgenciesPage() {
             !searchTerm
               ? {
                   label: 'Add Agency',
-                  onClick: () => {},
+                  onClick: handleAdd,
                 }
               : undefined
           }
@@ -118,6 +161,7 @@ export default function AgenciesPage() {
             <AgencyCard
               key={agency._id}
               agency={agency}
+              onEdit={handleEdit}
               onDelete={handleDelete}
             />
           ))}
@@ -131,6 +175,13 @@ export default function AgenciesPage() {
         onConfirm={confirmDelete}
         onCancel={() => setDeleteDialog({ isOpen: false, agency: null })}
         isDestructive
+      />
+
+      <AgencyForm
+        agency={formDialog.agency || undefined}
+        isOpen={formDialog.isOpen}
+        onClose={() => setFormDialog({ isOpen: false, agency: null })}
+        onSubmit={handleFormSubmit}
       />
     </div>
   );
