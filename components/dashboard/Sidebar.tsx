@@ -13,6 +13,7 @@ import {
   Brain,
   Radio,
   Settings
+  ,Ticket
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,6 +30,12 @@ const navItems = [
     label: 'Live Crowd', 
     icon: Bus,
     description: 'Real-time crowd monitoring'
+  },
+  {
+    href: '/dashboard/tickets',
+    label: 'Digital Tickets',
+    icon: Ticket,
+    description: 'Buy and manage travel tickets'
   },
   { 
     href: '/dashboard/live-vehicles', 

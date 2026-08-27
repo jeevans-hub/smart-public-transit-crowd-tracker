@@ -14,12 +14,14 @@ import {
   X,
   Radio,
   Network
+  ,Ticket
 } from 'lucide-react';
 import { useState } from 'react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/live', label: 'Live Crowd', icon: Radio },
+  { href: '/dashboard/tickets', label: 'Digital Tickets', icon: Ticket },
   { href: '/dashboard/digital-twin', label: 'Digital Twin', icon: Network },
   { href: '/dashboard/agencies', label: 'Agencies', icon: Building2 },
   { href: '/dashboard/stations', label: 'Stations', icon: MapPin },
