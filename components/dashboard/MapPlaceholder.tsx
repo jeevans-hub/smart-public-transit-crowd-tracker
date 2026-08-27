@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapPin, Car, Plus, Minus, Maximize2, Layers } from 'lucide-react';
+import { MapPin, Car, Plus, Minus, Maximize2, Layers, Minimize2 } from 'lucide-react';
 import { MapMarker } from '@/data/dashboard';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -25,16 +25,20 @@ function MapController({ markers }: { markers: MapMarker[] }) {
   useEffect(() => {
     if (!map) return;
 
-    // Always center on Bengaluru
-    const bengaluruCenter: [number, number] = [12.9716, 77.5946];
-    map.setView(bengaluruCenter, 12);
+    try {
+      // Always center on Bengaluru
+      const bengaluruCenter: [number, number] = [12.9716, 77.5946];
+      map.setView(bengaluruCenter, 12);
 
-    // If we have markers, fit bounds to show them
-    if (markers.length > 0) {
-      const bounds = L.latLngBounds(
-        markers.map((m) => [m.lat, m.lng] as [number, number])
-      );
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      // If we have markers, fit bounds to show them
+      if (markers && markers.length > 0) {
+        const bounds = L.latLngBounds(
+          markers.map((m) => [m.lat, m.lng] as [number, number])
+        );
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      }
+    } catch (error) {
+      console.error('Map controller error:', error);
     }
   }, [markers, map]);
 
@@ -43,10 +47,25 @@ function MapController({ markers }: { markers: MapMarker[] }) {
 
 export default function MapPlaceholder({ markers }: MapPlaceholderProps) {
   const [isClient, setIsClient] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showLayers, setShowLayers] = useState(false);
+  const [selectedLayer, setSelectedLayer] = useState('standard');
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
+  const layers = [
+    { id: 'standard', name: 'Standard', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
+    { id: 'satellite', name: 'Satellite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' },
+    { id: 'terrain', name: 'Terrain', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png' },
+  ];
+
+  const currentLayer = layers.find(l => l.id === selectedLayer) || layers[0];
 
   if (!isClient) {
     return (
@@ -72,49 +91,81 @@ export default function MapPlaceholder({ markers }: MapPlaceholderProps) {
   const center: [number, number] = [12.9716, 77.5946]; // Always center on Bengaluru
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${isFullscreen ? 'fixed inset-4 z-50' : ''}`}>
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Live Map - Bengaluru</h3>
         <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <Layers className="w-5 h-5 text-gray-600" />
-          </button>
-          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <Maximize2 className="w-5 h-5 text-gray-600" />
+          <div className="relative">
+            <button 
+              onClick={() => setShowLayers(!showLayers)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Layers className="w-5 h-5 text-gray-600" />
+            </button>
+            {showLayers && (
+              <div className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-[150px]">
+                {layers.map((layer) => (
+                  <button
+                    key={layer.id}
+                    onClick={() => {
+                      setSelectedLayer(layer.id);
+                      setShowLayers(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                      selectedLayer === layer.id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                    }`}
+                  >
+                    {layer.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button 
+            onClick={toggleFullscreen}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-5 h-5 text-gray-600" />
+            ) : (
+              <Maximize2 className="w-5 h-5 text-gray-600" />
+            )}
           </button>
         </div>
       </div>
 
-      <div className="h-96">
+      <div className={`${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-[600px]'}`}>
         <MapContainer
           center={center as [number, number]}
           zoom={12}
           className="w-full h-full"
-          style={{ height: '384px' }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            url={currentLayer.url}
           />
 
           <MapController markers={markers} />
 
           {/* Map Markers */}
-          {markers && markers.length > 0 && markers.map((marker) => (
-            <Marker
-              key={marker.id}
-              position={[marker.lat, marker.lng]}
-            >
-              <Popup>
-                <div className="p-2">
-                  <div className="font-medium">{marker.name}</div>
-                  <div className="text-sm text-gray-600">
-                    {marker.type === 'station' ? 'Station' : 'Vehicle'} - {marker.status}
+          {markers && markers.length > 0 && markers.map((marker) => {
+            if (!marker.lat || !marker.lng) return null;
+            return (
+              <Marker
+                key={marker.id}
+                position={[marker.lat, marker.lng] as [number, number]}
+              >
+                <Popup>
+                  <div className="p-2">
+                    <div className="font-medium">{marker.name}</div>
+                    <div className="text-sm text-gray-600">
+                      {marker.type === 'station' ? 'Station' : 'Vehicle'} - {marker.status}
+                    </div>
                   </div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+                </Popup>
+              </Marker>
+            );
+          })}
         </MapContainer>
       </div>
 

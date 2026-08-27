@@ -126,7 +126,7 @@ export const ExportReport: React.FC<ExportReportProps> = ({ filters, onExport })
             <span className="font-medium">Date Range:</span> {filters.dateRange.range}
             {filters.dateRange.startDate && (
               <span className="ml-2">
-                ({filters.dateRange.startDate.toLocaleDateString()} - {filters.dateRange.endDate?.toLocaleDateString()})
+                ({filters.dateRange.startDate instanceof Date ? filters.dateRange.startDate.toLocaleDateString() : filters.dateRange.startDate} - {filters.dateRange.endDate && (filters.dateRange.endDate instanceof Date ? filters.dateRange.endDate.toLocaleDateString() : filters.dateRange.endDate)})
               </span>
             )}
           </p>

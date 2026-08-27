@@ -191,6 +191,34 @@ export async function POST(request: NextRequest) {
         const searchRoutesResult = await searchRoutes(query, filters);
         return NextResponse.json({ success: true, data: searchRoutesResult });
 
+      case 'implement-recommendation':
+        if (!body.id) {
+          return NextResponse.json({ success: false, error: 'Recommendation ID is required' }, { status: 400 });
+        }
+        // In a real implementation, this would:
+        // 1. Get the recommendation details
+        // 2. Execute the recommended action (dispatch vehicles, update frequency, etc.)
+        // 3. Log the implementation
+        // 4. Update recommendation status in database
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Recommendation implemented successfully',
+          implementedAt: new Date().toISOString()
+        });
+
+      case 'dismiss-recommendation':
+        if (!body.id) {
+          return NextResponse.json({ success: false, error: 'Recommendation ID is required' }, { status: 400 });
+        }
+        // In a real implementation, this would:
+        // 1. Update recommendation status to DISCLOSED in database
+        // 2. Log the dismissal
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Recommendation dismissed successfully',
+          dismissedAt: new Date().toISOString()
+        });
+
       default:
         return NextResponse.json(
           { success: false, error: 'Invalid action' },

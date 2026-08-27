@@ -1,6 +1,7 @@
 import CrowdReport from '@/models/CrowdReport';
 import { ICrowdReportDocument, ICrowdReportResponse, ICrowdStatistics, IVehicleOccupancy, IStationOccupancy, IRouteOccupancy, CrowdLevel } from '@/types/crowd';
 import { calculateOccupancyPercentage, calculateCrowdLevel as calcCrowdLevel, calculateAverageOccupancy } from '@/utils/crowdCalculator';
+import { notificationService } from './notificationService';
 
 export async function createCrowdReport(data: {
   vehicleId: string;
@@ -21,6 +22,23 @@ export async function createCrowdReport(data: {
   });
   
   await report.save();
+
+  // Send SMS alerts for critical/high crowd levels
+  if (data.crowdLevel === 'FULL' || data.crowdLevel === 'HIGH') {
+    try {
+      await notificationService.sendCrowdAlertSMS({
+        type: data.crowdLevel === 'FULL' ? 'CRITICAL' : 'HIGH',
+        message: `Station ${data.stationId} is experiencing ${data.crowdLevel.toLowerCase()} crowd levels (${occupancyPercentage}% occupancy)`,
+        stationId: data.stationId,
+        vehicleId: data.vehicleId,
+        occupancyPercentage,
+        timestamp: new Date(),
+      }, data.stationId);
+    } catch (error) {
+      console.error('Failed to send SMS alert:', error);
+    }
+  }
+
   return report;
 }
 

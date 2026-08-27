@@ -16,9 +16,18 @@ export function generateToken(userId: string, username?: string): string {
   });
 }
 
-export function verifyToken(token: string): { userId: string } | null {
+export function verifyToken(token: string): { userId: string; username?: string } | null {
   try {
-    return jwt.verify(token, env.JWT_SECRET) as { userId: string };
+    const payload = jwt.verify(token, env.JWT_SECRET) as { userId?: unknown; username?: unknown };
+
+    if (typeof payload.userId !== 'string' || payload.userId.length === 0) {
+      return null;
+    }
+
+    return {
+      userId: payload.userId,
+      ...(typeof payload.username === 'string' ? { username: payload.username } : {}),
+    };
   } catch {
     return null;
   }

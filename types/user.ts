@@ -9,6 +9,12 @@ export interface IUser {
   level: number;
   experience: number;
   coins: number;
+  phoneNumber?: string;
+  phoneVerified: boolean;
+  phoneVerificationCode?: string;
+  phoneVerificationExpires?: Date;
+  smsAlertsEnabled: boolean;
+  smsAlertThreshold: 'low' | 'medium' | 'high';
 }
 
 export interface IUserDocument extends IUser, Document {
@@ -25,6 +31,10 @@ export interface IUserResponse {
   level: number;
   experience: number;
   coins: number;
+  phoneNumber?: string;
+  phoneVerified: boolean;
+  smsAlertsEnabled: boolean;
+  smsAlertThreshold: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { AIRecommendation as AIRecommendationType } from '@/types/analytics';
 
@@ -15,6 +17,7 @@ export const AIRecommendationPanel: React.FC<AIRecommendationPanelProps> = ({
   onImplement,
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [confirmImplementId, setConfirmImplementId] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -119,18 +122,40 @@ export const AIRecommendationPanel: React.FC<AIRecommendationPanelProps> = ({
                 </button>
                 {rec.status === 'PENDING' && (
                   <>
-                    <button
-                      onClick={() => onImplement?.(rec.id)}
-                      className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                    >
-                      Implement
-                    </button>
-                    <button
-                      onClick={() => onDismiss?.(rec.id)}
-                      className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                    >
-                      Dismiss
-                    </button>
+                    {confirmImplementId === rec.id ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            onImplement?.(rec.id);
+                            setConfirmImplementId(null);
+                          }}
+                          className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setConfirmImplementId(null)}
+                          className="px-3 py-1 text-sm bg-gray-400 text-white rounded hover:bg-gray-500 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setConfirmImplementId(rec.id)}
+                          className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                        >
+                          Implement
+                        </button>
+                        <button
+                          onClick={() => onDismiss?.(rec.id)}
+                          className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                        >
+                          Dismiss
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>

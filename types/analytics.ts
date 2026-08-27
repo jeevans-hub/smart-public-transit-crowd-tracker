@@ -13,6 +13,8 @@ export interface AnalyticsFilters {
   vehicleId?: string;
   status?: string;
   predictionWindow?: '15' | '30' | '60';
+  vehicleType?: 'BUS' | 'METRO' | 'TRAIN';
+  zone?: string;
 }
 
 export interface KPIMetrics {

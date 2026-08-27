@@ -117,10 +117,10 @@ export function useKPIMetrics(filters: AnalyticsFilters) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/analytics/kpi', {
+        const response = await fetch('/api/analytics', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filters }),
+          body: JSON.stringify({ filters, action: 'kpi' }),
         });
         const result = await response.json();
         if (result.success) {
@@ -150,10 +150,10 @@ export function useTrends(filters: AnalyticsFilters) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/analytics/trends', {
+        const response = await fetch('/api/analytics', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filters }),
+          body: JSON.stringify({ filters, action: 'trends' }),
         });
         const result = await response.json();
         if (result.success) {
@@ -183,10 +183,10 @@ export function useHeatmap(filters: AnalyticsFilters) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/analytics/heatmap', {
+        const response = await fetch('/api/analytics', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filters }),
+          body: JSON.stringify({ filters, action: 'heatmap' }),
         });
         const result = await response.json();
         if (result.success) {
@@ -212,10 +212,10 @@ export function useStationAnalytics(filters: AnalyticsFilters) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/analytics/stations', {
+        const response = await fetch('/api/analytics', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filters }),
+          body: JSON.stringify({ filters, action: 'stations' }),
         });
         const result = await response.json();
         if (result.success) {
@@ -241,10 +241,10 @@ export function useRouteAnalytics(filters: AnalyticsFilters) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/analytics/routes', {
+        const response = await fetch('/api/analytics', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filters }),
+          body: JSON.stringify({ filters, action: 'routes' }),
         });
         const result = await response.json();
         if (result.success) {
@@ -270,10 +270,10 @@ export function useVehicleAnalytics(filters: AnalyticsFilters) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/analytics/vehicles', {
+        const response = await fetch('/api/analytics', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filters }),
+          body: JSON.stringify({ filters, action: 'vehicles' }),
         });
         const result = await response.json();
         if (result.success) {
@@ -299,10 +299,10 @@ export function usePeakHourAnalysis(filters: AnalyticsFilters) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/analytics/peak-hours', {
+        const response = await fetch('/api/analytics', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filters }),
+          body: JSON.stringify({ filters, action: 'peak-hours' }),
         });
         const result = await response.json();
         if (result.success) {
@@ -328,10 +328,10 @@ export function useDemandForecast(filters: AnalyticsFilters, daysAhead: number =
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/analytics/forecast', {
+        const response = await fetch('/api/analytics', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filters, daysAhead }),
+          body: JSON.stringify({ filters, action: 'forecast', daysAhead }),
         });
         const result = await response.json();
         if (result.success) {
@@ -357,10 +357,10 @@ export function useAIRecommendations(filters: AnalyticsFilters) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/analytics/recommendations', {
+        const response = await fetch('/api/analytics', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filters }),
+          body: JSON.stringify({ filters, action: 'recommendations' }),
         });
         const result = await response.json();
         if (result.success) {
@@ -377,23 +377,23 @@ export function useAIRecommendations(filters: AnalyticsFilters) {
 
   const dismissRecommendation = useCallback(async (id: string) => {
     try {
-      await fetch('/api/analytics/recommendations/dismiss', {
+      await fetch('/api/analytics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ filters, action: 'dismiss-recommendation', id }),
       });
       setData(prev => prev.filter(rec => rec.id !== id));
     } catch (err) {
       console.error('Error dismissing recommendation:', err);
     }
-  }, []);
+  }, [filters]);
 
   const implementRecommendation = useCallback(async (id: string) => {
     try {
-      await fetch('/api/analytics/recommendations/implement', {
+      await fetch('/api/analytics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ filters, action: 'implement-recommendation', id }),
       });
       setData(prev => prev.map(rec => 
         rec.id === id ? { ...rec, status: 'IMPLEMENTED' } : rec
@@ -401,7 +401,7 @@ export function useAIRecommendations(filters: AnalyticsFilters) {
     } catch (err) {
       console.error('Error implementing recommendation:', err);
     }
-  }, []);
+  }, [filters]);
 
   return { data, loading, dismissRecommendation, implementRecommendation };
 }

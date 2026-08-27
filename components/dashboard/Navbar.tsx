@@ -1,12 +1,43 @@
 'use client';
 
-import { Bell, Search, LogOut, User, ChevronDown } from 'lucide-react';
+import { Bell, Search, LogOut, User, ChevronDown, Settings, UserCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { useNotifications } from '@/hooks/useNotifications';
+import { NotificationPanel } from './NotificationPanel';
+import { useLanguage } from '@/contexts/LanguageProvider';
+import { useState, useRef, useEffect } from 'react';
 
 export default function Navbar() {
   const { logout, currentUser } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const {
+    notifications,
+    unreadCount,
+    isOpen,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAll,
+    togglePanel,
+    closePanel,
+  } = useNotifications();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -42,35 +73,87 @@ export default function Navbar() {
         {/* Right Side Actions */}
         <div className="flex items-center gap-4">
           {/* Notifications */}
-          <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <button
+            onClick={togglePanel}
+            className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
             <Bell size={20} />
-            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
 
           {/* User Profile */}
-          <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">{currentUser?.username || 'User'}</p>
-              <p className="text-xs text-gray-500">{currentUser?.role || 'Administrator'}</p>
+          <div className="relative" ref={dropdownRef}>
+            <div 
+              className="flex items-center gap-3 pl-4 border-l border-gray-200 cursor-pointer"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">{currentUser?.username || 'User'}</p>
+                <p className="text-xs text-gray-500">{currentUser?.role || 'Administrator'}</p>
+              </div>
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <ChevronDown size={18} />
+              </button>
             </div>
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
-            </div>
-            <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-              <ChevronDown size={18} />
-            </button>
-          </div>
 
-          {/* Logout Button */}
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
-          >
-            <LogOut size={18} />
-            <span className="text-sm font-medium">Logout</span>
-          </button>
+            {/* Dropdown Menu */}
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                <button
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    router.push('/dashboard/profile');
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  <UserCircle size={18} />
+                  <span>{t('profile')}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    router.push('/dashboard/settings');
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  <Settings size={18} />
+                  <span>{t('settings')}</span>
+                </button>
+                <div className="border-t border-gray-200 my-2" />
+                <button
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    handleLogout();
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut size={18} />
+                  <span>{t('logout')}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Notification Panel */}
+      <NotificationPanel
+        notifications={notifications}
+        unreadCount={unreadCount}
+        isOpen={isOpen}
+        onClose={closePanel}
+        onMarkAsRead={markAsRead}
+        onMarkAllAsRead={markAllAsRead}
+        onDelete={deleteNotification}
+        onClearAll={clearAll}
+      />
     </header>
   );
 }

@@ -3,13 +3,13 @@ import { useRealtime } from '@/contexts/RealtimeProvider';
 import { SERVER_EVENTS } from '@/utils/eventNames';
 import { ICrowdReportResponse, ICrowdStatistics } from '@/types/crowd';
 
-interface TimelineEvent {
+export interface TimelineEvent {
   type: string;
   data: any;
   timestamp: Date;
 }
 
-interface AlertData {
+export interface AlertData {
   type: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'RESOLVED';
   message: string;
   stationId?: string;
@@ -87,10 +87,6 @@ export function useCrowdRealtime(options: UseCrowdRealtimeOptions = {}) {
   const handleCrowdCreated = useCallback((report: ICrowdReportResponse) => {
     setCrowdReports((prev) => [report, ...prev]);
     onCrowdCreated?.(report);
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Crowd Realtime] Crowd report created:', report);
-    }
   }, [onCrowdCreated]);
 
   // Handle crowd:updated event
@@ -99,30 +95,18 @@ export function useCrowdRealtime(options: UseCrowdRealtimeOptions = {}) {
       prev.map((r) => (r._id === report._id ? report : r))
     );
     onCrowdUpdated?.(report);
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Crowd Realtime] Crowd report updated:', report);
-    }
   }, [onCrowdUpdated]);
 
   // Handle crowd:deleted event
   const handleCrowdDeleted = useCallback((data: { id: string }) => {
     setCrowdReports((prev) => prev.filter((r) => r._id !== data.id));
     onCrowdDeleted?.(data.id);
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Crowd Realtime] Crowd report deleted:', data.id);
-    }
   }, [onCrowdDeleted]);
 
   // Handle dashboard:update event
   const handleDashboardUpdate = useCallback((stats: ICrowdStatistics) => {
     setStatistics(stats);
     onDashboardUpdate?.(stats);
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Crowd Realtime] Dashboard updated:', stats);
-    }
   }, [onDashboardUpdate]);
 
   // Handle timeline:update event
@@ -133,20 +117,12 @@ export function useCrowdRealtime(options: UseCrowdRealtimeOptions = {}) {
       return newTimeline.slice(0, 100);
     });
     onTimelineUpdate?.(event);
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Crowd Realtime] Timeline updated:', event);
-    }
   }, [onTimelineUpdate]);
 
   // Handle alert:new event
   const handleAlertNew = useCallback((alert: AlertData) => {
     setAlerts((prev) => [alert, ...prev]);
     onAlertNew?.(alert);
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Crowd Realtime] New alert:', alert);
-    }
   }, [onAlertNew]);
 
   // Setup socket subscriptions

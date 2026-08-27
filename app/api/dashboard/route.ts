@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import CrowdReport from '@/models/CrowdReport';
 import Station from '@/models/Station';
-import Route from '@/models/Route';
+import { ICrowdReportDocument } from '@/types/crowd';
 import { getRecentReports, getTodayReports, getCrowdStatistics } from '@/services/crowdService';
 import { calculateCrowdDistribution, calculateAverageOccupancy } from '@/utils/crowdCalculator';
 import { occupancyToDashboardStatus, statusToAlertPriority } from '@/utils/crowdStatus';
@@ -12,16 +11,18 @@ export async function GET(request: NextRequest) {
     await connectDB();
     
     const searchParams = request.nextUrl.searchParams;
-    const hours = parseInt(searchParams.get('hours') || '24');
+    const requestedHours = Number.parseInt(searchParams.get('hours') || '24', 10);
+    const hours = Number.isFinite(requestedHours) ? Math.min(Math.max(requestedHours, 1), 168) : 24;
     
     // Get all recent reports
     const recentReports = await getRecentReports(100);
     const todayReports = await getTodayReports();
+    const cutoff = Date.now() - hours * 60 * 60 * 1000;
+    const periodReports = recentReports.filter(report => new Date(report.createdAt).getTime() >= cutoff);
     const statistics = await getCrowdStatistics();
     
     // Get station and route counts
     const totalStations = await Station.countDocuments({ active: true });
-    const totalRoutes = await Route.countDocuments({ active: true });
     
     // Calculate stat cards
     const uniqueVehicles = new Set(todayReports.map(r => r.vehicleId));
@@ -86,9 +87,9 @@ export async function GET(request: NextRequest) {
     ];
     
     // Calculate chart data based on actual reports
-    const passengerData = generatePassengerData(todayReports);
-    const vehicleOccupancyData = generateVehicleOccupancyData(recentReports);
-    const peakHoursData = generatePeakHoursData(todayReports);
+    const passengerData = generatePassengerData(periodReports);
+    const vehicleOccupancyData = generateVehicleOccupancyData(periodReports);
+    const peakHoursData = generatePeakHoursData(periodReports);
     const crowdDistributionData = generateCrowdDistributionData(recentReports);
     const stationUtilizationData = generateStationUtilizationData(stationOccupancyMap);
     
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest) {
     const alertStations = await Station.find({ _id: { $in: stationIds } });
     const stationMap = new Map(alertStations.map(s => [s._id.toString(), s.stationName]));
     
-    const liveAlertsData = highOccupancyReports.map((report, index) => {
+    const liveAlertsData = highOccupancyReports.map((report) => {
       const status = occupancyToDashboardStatus(report.occupancyPercentage);
       const priority = statusToAlertPriority(status);
       const now = new Date();
@@ -164,7 +165,7 @@ export async function GET(request: NextRequest) {
     const activityStations = await Station.find({ _id: { $in: activityStationIds } });
     const activityStationMap = new Map(activityStations.map(s => [s._id.toString(), s.stationName]));
     
-    const activityTimelineData = activityReports.map((report, index) => {
+    const activityTimelineData = activityReports.map((report) => {
       const now = new Date();
       const reportTime = new Date(report.createdAt);
       const diffMs = now.getTime() - reportTime.getTime();
@@ -230,32 +231,61 @@ export async function GET(request: NextRequest) {
 }
 
 // Helper functions to generate chart data
-function generatePassengerData(reports: any[]) {
+type DashboardReport = Pick<ICrowdReportDocument, 'createdAt' | 'passengerCount' | 'occupancyPercentage'>;
+
+function generatePassengerData(reports: DashboardReport[]) {
   const hours = ['6 AM', '8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM'];
-  return hours.map(hour => ({
-    name: hour,
-    value: Math.floor(Math.random() * 8000) + 1000,
-  }));
+  const totals = new Map(hours.map(hour => [hour, 0]));
+
+  reports.forEach(report => {
+    const hour = new Date(report.createdAt).getHours();
+    const bucket = Math.min(Math.max(Math.floor((hour - 6) / 2), 0), hours.length - 1);
+    if (hour >= 6 && hour <= 22) {
+      const label = hours[bucket];
+      totals.set(label, (totals.get(label) || 0) + report.passengerCount);
+    }
+  });
+
+  return hours.map(name => ({ name, value: totals.get(name) || 0 }));
 }
 
-function generateVehicleOccupancyData(reports: any[]) {
+function generateVehicleOccupancyData(reports: DashboardReport[]) {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  return days.map(day => ({
-    name: day,
-    value: Math.floor(Math.random() * 50) + 30,
-    capacity: 100,
-  }));
+  const values = new Map(days.map(day => [day, [] as number[]]));
+
+  reports.forEach(report => {
+    const date = new Date(report.createdAt);
+    const dayIndex = date.getDay() === 0 ? 6 : date.getDay() - 1;
+    values.get(days[dayIndex])?.push(report.occupancyPercentage);
+  });
+
+  return days.map(name => {
+    const dayValues = values.get(name) || [];
+    return {
+      name,
+      value: dayValues.length ? Math.round(dayValues.reduce((sum, value) => sum + value, 0) / dayValues.length) : 0,
+      capacity: 100,
+    };
+  });
 }
 
-function generatePeakHoursData(reports: any[]) {
+function generatePeakHoursData(reports: DashboardReport[]) {
   const hours = ['6-7 AM', '7-8 AM', '8-9 AM', '9-10 AM', '10-11 AM', '11-12 PM', '12-1 PM', '1-2 PM', '2-3 PM', '3-4 PM', '4-5 PM', '5-6 PM', '6-7 PM', '7-8 PM', '8-9 PM'];
-  return hours.map(hour => ({
-    name: hour,
-    value: Math.floor(Math.random() * 8000) + 1000,
-  }));
+  const totals = new Map(hours.map(hour => [hour, 0]));
+
+  reports.forEach(report => {
+    const hour = new Date(report.createdAt).getHours();
+    const index = hour - 6;
+    if (index >= 0 && index < hours.length) {
+      const label = hours[index];
+      totals.set(label, (totals.get(label) || 0) + report.passengerCount);
+    }
+  });
+
+  return hours.map(name => ({ name, value: totals.get(name) || 0 }));
 }
 
-function generateCrowdDistributionData(reports: any[]) {
+function generateCrowdDistributionData(reports: Pick<ICrowdReportDocument, 'occupancyPercentage'>[]) {
   const distribution = calculateCrowdDistribution(reports);
   const total = Object.values(distribution).reduce((sum, val) => sum + val, 0) || 1;
   
@@ -279,14 +309,6 @@ function generateStationUtilizationData(stationOccupancyMap: Map<string, number[
       value: avg,
     });
     count++;
-  }
-  
-  // Fill with dummy data if less than 5 stations
-  while (data.length < 5) {
-    data.push({
-      name: `Station ${data.length + 1}`,
-      value: Math.floor(Math.random() * 50) + 40,
-    });
   }
   
   return data;

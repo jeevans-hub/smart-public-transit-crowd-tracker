@@ -350,7 +350,7 @@ export function usePredictionRealtime(
 
   // Re-sync after reconnect
   useEffect(() => {
-    if (isConnected && predictions.length > 0) {
+    if (isConnected) {
       fetchPredictions();
     }
   }, [isConnected, fetchPredictions]);

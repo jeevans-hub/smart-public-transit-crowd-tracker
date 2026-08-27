@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Navbar from '@/components/dashboard/Navbar';
 import Sidebar from '@/components/dashboard/Sidebar';
 import StatisticCard from '@/components/dashboard/StatisticCard';
@@ -18,7 +18,7 @@ import PredictionAlerts from '@/components/prediction/PredictionAlerts';
 import { Brain } from 'lucide-react';
 import ConnectionStatus from '@/components/realtime/ConnectionStatus';
 import SystemHealthCard from '@/components/realtime/SystemHealthCard';
-import { useCrowdRealtime } from '@/hooks/useCrowdRealtime';
+import { TimelineEvent, AlertData as RealtimeAlertData, useCrowdRealtime } from '@/hooks/useCrowdRealtime';
 import { ICrowdStatistics } from '@/types/crowd';
 
 interface DashboardData {
@@ -46,67 +46,138 @@ export default function DashboardPage() {
   // Use realtime hook for crowd statistics
   const { statistics: realtimeStats, isConnected, timeline, alerts } = useCrowdRealtime({
     autoSync: true,
-    onDashboardUpdate: (stats) => {
+    onDashboardUpdate: useCallback((stats: ICrowdStatistics) => {
       // Update dashboard data when statistics change
-      if (data) {
-        setData((prev) => {
-          if (!prev) return prev;
-          // Update statistics-based cards
-          const updatedStatCards = [...prev.statCardsData];
-          updatedStatCards[0].value = stats.reportsToday; // Reports Today
-          updatedStatCards[1].value = Math.round(stats.averageOccupancy); // Average Occupancy
-          updatedStatCards[2].value = Math.round(stats.mostCrowdedVehicle?.occupancyPercentage || 0); // Highest Crowded
-          updatedStatCards[3].value = 0; // Lowest Crowded (placeholder)
-          updatedStatCards[4].value = stats.vehiclesOnline; // Vehicles Online
-          
-          return {
-            ...prev,
-            statCardsData: updatedStatCards,
-          };
-        });
-      }
-    },
-    onTimelineUpdate: (event) => {
+      setData((prev) => {
+        if (!prev) return prev;
+        // Update statistics-based cards
+        const updatedStatCards = [...prev.statCardsData];
+        updatedStatCards[0].value = stats.reportsToday; // Reports Today
+        updatedStatCards[1].value = Math.round(stats.averageOccupancy); // Average Occupancy
+        updatedStatCards[2].value = Math.round(stats.mostCrowdedVehicle?.occupancyPercentage || 0); // Highest Crowded
+        updatedStatCards[3].value = 0; // Lowest Crowded (placeholder)
+        updatedStatCards[4].value = stats.vehiclesOnline; // Vehicles Online
+        
+        return {
+          ...prev,
+          statCardsData: updatedStatCards,
+        };
+      });
+    }, []),
+    onTimelineUpdate: useCallback((event: TimelineEvent) => {
       // Update activity timeline when new events arrive
-      if (data) {
-        setData((prev) => {
-          if (!prev) return prev;
-          const newActivity: ActivityData = {
-            id: event.timestamp.getTime().toString(),
-            action: event.type,
-            timestamp: new Date(event.timestamp).toLocaleString(),
-            details: event.data ? JSON.stringify(event.data) : '',
-          };
-          return {
-            ...prev,
-            activityTimelineData: [newActivity, ...prev.activityTimelineData].slice(0, 100),
-          };
-        });
-      }
-    },
-    onAlertNew: (alert) => {
+      setData((prev) => {
+        if (!prev) return prev;
+        const newActivity: ActivityData = {
+          id: event.timestamp.getTime().toString(),
+          action: event.type,
+          timestamp: new Date(event.timestamp).toLocaleString(),
+          details: event.data ? JSON.stringify(event.data) : '',
+        };
+        return {
+          ...prev,
+          activityTimelineData: [newActivity, ...prev.activityTimelineData].slice(0, 100),
+        };
+      });
+    }, []),
+    onAlertNew: useCallback((alert: RealtimeAlertData) => {
       // Update alerts when new alerts arrive
-      if (data) {
-        setData((prev) => {
-          if (!prev) return prev;
-          const newAlert: AlertData = {
-            id: alert.timestamp.getTime().toString(),
-            type: alert.type === 'CRITICAL' ? 'High Crowd' : 'Platform Congestion',
-            priority: alert.type.toLowerCase() as 'low' | 'medium' | 'high' | 'critical',
-            timestamp: new Date(alert.timestamp).toLocaleString(),
-            location: alert.stationId || 'Unknown',
-            description: alert.message,
-          };
-          return {
-            ...prev,
-            liveAlertsData: [newAlert, ...prev.liveAlertsData].slice(0, 50),
-          };
-        });
-      }
-    },
+      setData((prev) => {
+        if (!prev) return prev;
+        const newAlert: AlertData = {
+          id: alert.timestamp.getTime().toString(),
+          type: alert.type === 'CRITICAL' ? 'High Crowd' : 'Platform Congestion',
+          priority: alert.type.toLowerCase() as 'low' | 'medium' | 'high' | 'critical',
+          timestamp: new Date(alert.timestamp).toLocaleString(),
+          location: alert.stationId || 'Unknown',
+          description: alert.message,
+        };
+        return {
+          ...prev,
+          liveAlertsData: [newAlert, ...prev.liveAlertsData].slice(0, 50),
+        };
+      });
+    }, []),
   });
 
-  const fetchDashboardData = async () => {
+  // Memoize the components to prevent unnecessary re-renders
+  const statisticCards = useMemo(() => {
+    if (!data) return null;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+        {data.statCardsData.map((stat, index) => (
+          <StatisticCard
+            key={index}
+            title={stat.title}
+            value={stat.value}
+            change={stat.change}
+            icon={stat.icon}
+          />
+        ))}
+      </div>
+    );
+  }, [data?.statCardsData]);
+
+  const crowdGauges = useMemo(() => {
+    if (!data) return null;
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Live Crowd Levels</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {data.crowdGaugeValues.map((value, index) => (
+            <CrowdGauge key={index} value={value} />
+          ))}
+        </div>
+      </div>
+    );
+  }, [data?.crowdGaugeValues]);
+
+  const chartsSection = useMemo(() => {
+    if (!data) return null;
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <AnalyticsCharts
+          passengerData={data.passengerData}
+          occupancyData={data.vehicleOccupancyData}
+          peakHoursData={data.peakHoursData}
+          distributionData={data.crowdDistributionData}
+          utilizationData={data.stationUtilizationData}
+        />
+        <div className="space-y-6">
+          <AlertPanel alerts={data.liveAlertsData} />
+          <ActivityTimeline activities={data.activityTimelineData} />
+        </div>
+      </div>
+    );
+  }, [data?.passengerData, data?.vehicleOccupancyData, data?.peakHoursData, data?.crowdDistributionData, data?.stationUtilizationData, data?.liveAlertsData, data?.activityTimelineData]);
+
+  const liveTableAndMap = useMemo(() => {
+    if (!data) return null;
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <LiveTable data={data.liveCrowdData} />
+        <MapPlaceholder markers={data.mapMarkersData} />
+      </div>
+    );
+  }, [data?.liveCrowdData, data?.mapMarkersData]);
+
+  const stationUtilization = useMemo(() => {
+    if (!data) return null;
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Station Utilization</h3>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {data.stationUtilizationData.map((station, index) => (
+            <div key={index} className="text-center">
+              <CrowdGauge value={station.value} label={station.name} size={100} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }, [data?.stationUtilizationData]);
+
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -123,14 +194,14 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
     
     // No polling - realtime updates will handle crowd data changes
     // Only keep polling for non-crowd data if needed
-  }, []);
+  }, [fetchDashboardData]);
 
   if (error) {
     return (
@@ -184,42 +255,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Statistic Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-            {data.statCardsData.map((stat, index) => (
-              <StatisticCard
-                key={index}
-                title={stat.title}
-                value={stat.value}
-                change={stat.change}
-                icon={stat.icon}
-              />
-            ))}
-          </div>
+          {statisticCards}
 
           {/* Crowd Gauges */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Live Crowd Levels</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {data.crowdGaugeValues.map((value, index) => (
-                <CrowdGauge key={index} value={value} />
-              ))}
-            </div>
-          </div>
+          {crowdGauges}
 
           {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <AnalyticsCharts
-              passengerData={data.passengerData}
-              occupancyData={data.vehicleOccupancyData}
-              peakHoursData={data.peakHoursData}
-              distributionData={data.crowdDistributionData}
-              utilizationData={data.stationUtilizationData}
-            />
-            <div className="space-y-6">
-              <AlertPanel alerts={data.liveAlertsData} />
-              <ActivityTimeline activities={data.activityTimelineData} />
-            </div>
-          </div>
+          {chartsSection}
 
           {/* AI Prediction Section */}
           <div className="mb-6">
@@ -236,22 +278,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Live Table and Map */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <LiveTable data={data.liveCrowdData} />
-            <MapPlaceholder markers={data.mapMarkersData} />
-          </div>
+          {liveTableAndMap}
 
           {/* Station Utilization Chart */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Station Utilization</h3>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {data.stationUtilizationData.map((station, index) => (
-                <div key={index} className="text-center">
-                  <CrowdGauge value={station.value} label={station.name} size={100} />
-                </div>
-              ))}
-            </div>
-          </div>
+          {stationUtilization}
 
           {/* Socket Infrastructure Status */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -100,32 +100,22 @@ class SocketServer {
       try {
         const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
         
-        console.log('[Socket Server] Connection attempt, token present:', !!token);
-        console.log('[Socket Server] Socket ID:', socket.id);
-        console.log('[Socket Server] Handshake auth:', socket.handshake.auth);
-        
         if (!token) {
           this.log('Connection rejected: No token provided');
-          console.log('[Socket Server] Calling next() with error: No token');
           return next(new Error('Authentication failed: No token provided'));
         }
 
         // Verify JWT token using existing JWT secret
         const decoded = jwt.verify(token, env.JWT_SECRET) as any;
         
-        console.log('[Socket Server] Token decoded:', decoded);
-        
         // Attach user info to socket
         socket.userId = decoded.userId;
         socket.username = decoded.username || `User-${decoded.userId?.substring(0, 8)}`;
         
         this.log(`User authenticated: ${socket.username} (${socket.userId})`);
-        console.log('[Socket Server] Calling next() to proceed with connection');
         next();
       } catch (error) {
-        console.error('[Socket Server] Authentication error:', error);
         this.log('Connection rejected: Invalid token');
-        console.log('[Socket Server] Calling next() with error: Invalid token');
         next(new Error('Authentication failed: Invalid token'));
       }
     });
@@ -136,8 +126,6 @@ class SocketServer {
    */
   private setupEventHandlers(): void {
     if (!this.io) return;
-
-    console.log('[Socket Server] Setting up event handlers');
     
     this.io.on('connection', (socket: ExtendedSocket) => {
       this.handleConnection(socket);
@@ -152,7 +140,6 @@ class SocketServer {
    * Handle new connection
    */
   private handleConnection(socket: ExtendedSocket): void {
-    console.log('[Socket Server] handleConnection called for socket:', socket.id);
     this.metrics.connectedClients++;
     this.metrics.totalConnections++;
     
@@ -166,7 +153,6 @@ class SocketServer {
       messagesSent: this.metrics.messagesSent,
       messagesReceived: this.metrics.messagesReceived,
     });
-    console.log('[Socket Server] System status sent to client');
 
     // Handle client events
     socket.on(CLIENT_EVENTS.PING, (data: any) => this.handlePing(socket, data));

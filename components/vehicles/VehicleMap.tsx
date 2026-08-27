@@ -28,16 +28,24 @@ function MapController({ vehicles, selectedVehicle }: { vehicles: ILiveVehicleRe
   const map = useMap();
 
   useEffect(() => {
-    if (vehicles.length === 0) return;
+    if (!map) return;
 
-    const bounds = L.latLngBounds(
-      vehicles.map((v) => [v.latitude, v.longitude] as [number, number])
-    );
+    try {
+      const validVehicles = vehicles.filter(v => v.latitude && v.longitude);
+      
+      if (validVehicles.length === 0) return;
 
-    if (selectedVehicle) {
-      map.setView([selectedVehicle.latitude, selectedVehicle.longitude], 16);
-    } else {
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      const bounds = L.latLngBounds(
+        validVehicles.map((v) => [v.latitude, v.longitude] as [number, number])
+      );
+
+      if (selectedVehicle && selectedVehicle.latitude && selectedVehicle.longitude) {
+        map.setView([selectedVehicle.latitude, selectedVehicle.longitude], 16);
+      } else {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      }
+    } catch (error) {
+      console.error('Map controller error:', error);
     }
   }, [vehicles, selectedVehicle, map]);
 

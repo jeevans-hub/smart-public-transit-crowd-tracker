@@ -42,6 +42,8 @@ export const TrendChart: React.FC<TrendChartProps> = ({ data, type, title, loadi
 
   const chartData = data.map((item: any) => {
     let time: string;
+    
+    // Handle different date formats
     if (item.timestamp instanceof Date) {
       time = item.timestamp.toLocaleTimeString();
     } else if (item.date instanceof Date) {
@@ -50,15 +52,20 @@ export const TrendChart: React.FC<TrendChartProps> = ({ data, type, title, loadi
       time = item.date;
     } else if (typeof item.timestamp === 'string') {
       time = item.timestamp;
+    } else if (item._id) {
+      // Use ObjectID timestamp as fallback
+      time = new Date(item._id.getTimestamp()).toLocaleTimeString();
+    } else if (item.createdAt instanceof Date) {
+      time = item.createdAt.toLocaleTimeString();
     } else {
       time = 'Unknown';
     }
 
     return {
       time,
-      value: item.count || item.occupancy || item.activeVehicles || item.accuracy || item.value,
-      ...(type === 'vehicle' && { speed: item.averageSpeed, occupancy: item.averageOccupancy }),
-      ...(type === 'prediction' && { confidence: item.confidence }),
+      value: item.count || item.occupancy || item.activeVehicles || item.accuracy || item.value || 0,
+      ...(type === 'vehicle' && { speed: item.averageSpeed || 0, occupancy: item.averageOccupancy || 0 }),
+      ...(type === 'prediction' && { confidence: item.confidence || 0 }),
     };
   });
 

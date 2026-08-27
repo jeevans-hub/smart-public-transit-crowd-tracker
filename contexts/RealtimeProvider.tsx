@@ -46,29 +46,19 @@ export function RealtimeProvider({ children, autoConnect = true }: RealtimeProvi
   // Connect to socket server
   const connect = useCallback(async () => {
     if (currentUser) {
-      // Get JWT token from API endpoint (cookie is httpOnly, so we need server to return it)
       try {
-        console.log('[RealtimeProvider] Attempting to get token for socket connection...');
-        console.log('[RealtimeProvider] Current user:', currentUser);
         const response = await fetch('/api/auth/token');
         const data = await response.json();
-        console.log('[RealtimeProvider] Token response:', data);
         if (data.success && data.token) {
-          console.log('[RealtimeProvider] Token received, connecting to socket...');
-          console.log('[RealtimeProvider] Token length:', data.token.length);
           socketService.connect(data.token);
-          console.log('[RealtimeProvider] Socket connect() called');
           return Promise.resolve();
         } else {
-          console.error('[RealtimeProvider] Failed to get token:', data);
           return Promise.reject(new Error('Failed to get token'));
         }
       } catch (error) {
-        console.error('[RealtimeProvider] Failed to get token for socket connection:', error);
         return Promise.reject(error);
       }
     } else {
-      console.log('[RealtimeProvider] No current user, skipping connection');
       return Promise.resolve();
     }
   }, [currentUser]);
@@ -118,15 +108,10 @@ export function RealtimeProvider({ children, autoConnect = true }: RealtimeProvi
       setMounted(true);
       return;
     }
-
-    console.log('[RealtimeProvider] Auto-connect check - autoConnect:', autoConnect, 'currentUser:', !!currentUser);
-    console.log('[RealtimeProvider] Current user data:', currentUser);
     
     if (autoConnect && currentUser) {
-      console.log('[RealtimeProvider] Calling connect()...');
       connect();
     } else if (!currentUser) {
-      console.log('[RealtimeProvider] No user, disconnecting...');
       disconnect();
     }
 
@@ -137,7 +122,7 @@ export function RealtimeProvider({ children, autoConnect = true }: RealtimeProvi
 
   // Update stats periodically
   useEffect(() => {
-    const interval = setInterval(updateStats, 1000); // Update every second
+    const interval = setInterval(updateStats, 2000); // Reduced to every 2 seconds
 
     return () => clearInterval(interval);
   }, [updateStats]);

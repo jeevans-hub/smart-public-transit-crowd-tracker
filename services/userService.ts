@@ -48,6 +48,10 @@ export function toUserResponse(user: IUserDocument): IUserResponse {
     level: user.level,
     experience: user.experience,
     coins: user.coins,
+    phoneNumber: user.phoneNumber,
+    phoneVerified: user.phoneVerified,
+    smsAlertsEnabled: user.smsAlertsEnabled,
+    smsAlertThreshold: user.smsAlertThreshold,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

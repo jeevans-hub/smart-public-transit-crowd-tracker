@@ -11,6 +11,10 @@ interface User {
   level: number;
   experience: number;
   coins: number;
+  phoneNumber?: string;
+  phoneVerified?: boolean;
+  smsAlertsEnabled?: boolean;
+  smsAlertThreshold?: string;
 }
 
 interface AuthContextType {
@@ -20,6 +24,8 @@ interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+  updateUser: (updates: Partial<User>) => void;
+  getToken: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -63,6 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.error || 'Login failed');
     }
 
+    // Store token in localStorage for easier access in client components
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+
     await refresh();
   };
 
@@ -84,11 +95,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
+    localStorage.removeItem('token');
     setCurrentUser(null);
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    if (currentUser) {
+      setCurrentUser({ ...currentUser, ...updates });
+    }
+  };
+
+  const getToken = () => {
+    if (typeof window !== 'undefined') {
+      // Try localStorage first, then check document.cookie
+      const localToken = localStorage.getItem('token');
+      if (localToken) return localToken;
+      
+      // Try to get from cookie
+      const cookies = document.cookie.split(';');
+      const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='));
+      if (authCookie) {
+        return authCookie.split('=')[1];
+      }
+    }
+    return null;
+  };
+
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, register, logout, refresh }}>
+    <AuthContext.Provider value={{ currentUser, loading, login, register, logout, refresh, updateUser, getToken }}>
       {children}
     </AuthContext.Provider>
   );

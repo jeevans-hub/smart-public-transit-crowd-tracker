@@ -43,6 +43,32 @@ const UserSchema: Schema<IUser> = new Schema(
       type: Number,
       default: 0,
     },
+    phoneNumber: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    phoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+    phoneVerificationCode: {
+      type: String,
+      default: null,
+    },
+    phoneVerificationExpires: {
+      type: Date,
+      default: null,
+    },
+    smsAlertsEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    smsAlertThreshold: {
+      type: String,
+      enum: ['low', 'medium', 'high'],
+      default: 'high',
+    },
   },
   {
     timestamps: true,
