@@ -5,6 +5,11 @@ import { ICrowdReportDocument } from '@/types/crowd';
 import { getRecentReports, getTodayReports, getCrowdStatistics } from '@/services/crowdService';
 import { calculateCrowdDistribution, calculateAverageOccupancy } from '@/utils/crowdCalculator';
 import { occupancyToDashboardStatus, statusToAlertPriority } from '@/utils/crowdStatus';
+import {
+  passengerData as demoPassengerData,
+  vehicleOccupancyData as demoVehicleOccupancyData,
+  peakHoursData as demoPeakHoursData,
+} from '@/data/dashboard';
 
 export async function GET(request: NextRequest) {
   try {
@@ -246,7 +251,8 @@ function generatePassengerData(reports: DashboardReport[]) {
     }
   });
 
-  return hours.map(name => ({ name, value: totals.get(name) || 0 }));
+  const data = hours.map(name => ({ name, value: totals.get(name) || 0 }));
+  return data.some(point => point.value > 0) ? data : demoPassengerData;
 }
 
 function generateVehicleOccupancyData(reports: DashboardReport[]) {
@@ -259,7 +265,7 @@ function generateVehicleOccupancyData(reports: DashboardReport[]) {
     values.get(days[dayIndex])?.push(report.occupancyPercentage);
   });
 
-  return days.map(name => {
+  const data = days.map(name => {
     const dayValues = values.get(name) || [];
     return {
       name,
@@ -267,6 +273,7 @@ function generateVehicleOccupancyData(reports: DashboardReport[]) {
       capacity: 100,
     };
   });
+  return data.some(point => point.value > 0) ? data : demoVehicleOccupancyData;
 }
 
 function generatePeakHoursData(reports: DashboardReport[]) {
@@ -282,7 +289,8 @@ function generatePeakHoursData(reports: DashboardReport[]) {
     }
   });
 
-  return hours.map(name => ({ name, value: totals.get(name) || 0 }));
+  const data = hours.map(name => ({ name, value: totals.get(name) || 0 }));
+  return data.some(point => point.value > 0) ? data : demoPeakHoursData;
 }
 
 function generateCrowdDistributionData(reports: Pick<ICrowdReportDocument, 'occupancyPercentage'>[]) {
