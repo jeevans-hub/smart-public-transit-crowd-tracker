@@ -1,6 +1,8 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
+import QRCode from 'qrcode';
+import Image from 'next/image';
 import { CheckCircle2, Clock3, CreditCard, MapPin, QrCode, Ticket as TicketIcon, Users } from 'lucide-react';
 import Navbar from '@/components/dashboard/Navbar';
 import Sidebar from '@/components/dashboard/Sidebar';
@@ -24,24 +26,18 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
-function TicketCode({ value }: { value: string }) {
-  const cells = useMemo(() => {
-    const hash = Array.from(value).reduce((total, character) => total + character.charCodeAt(0), 0);
-    return Array.from({ length: 121 }, (_, index) => {
-      const row = Math.floor(index / 11);
-      const column = index % 11;
-      const finder = (row < 3 && column < 3) || (row < 3 && column > 7) || (row > 7 && column < 3);
-      return finder ? (row === 1 || column === 1 ? 1 : 0) : (hash + index * 17 + row * column) % 3 === 0 ? 1 : 0;
-    });
+function TicketQrCode({ value }: { value: string }) {
+  const [src, setSrc] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    QRCode.toDataURL(value, { width: 220, margin: 1, errorCorrectionLevel: 'M' }).then(dataUrl => {
+      if (active) setSrc(dataUrl);
+    }).catch(() => setSrc(''));
+    return () => { active = false; };
   }, [value]);
 
-  return (
-    <div className="rounded-xl bg-white p-3 shadow-inner" aria-label={`Ticket code ${value}`}>
-      <div className="grid grid-cols-11 gap-0.5" aria-hidden="true">
-        {cells.map((cell, index) => <span key={index} className={`aspect-square ${cell ? 'bg-slate-900' : 'bg-white'}`} />)}
-      </div>
-    </div>
-  );
+  return src ? <Image src={src} width={208} height={208} unoptimized alt={`Scannable QR code for ticket ${value}`} className="h-52 w-52 rounded-xl bg-white p-2" /> : <div className="h-52 w-52 animate-pulse rounded-xl bg-white/80" aria-label="Generating QR code" />;
 }
 
 export default function TicketsPage() {
@@ -140,7 +136,7 @@ export default function TicketsPage() {
               <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-5"><div><p className="text-sm text-gray-500">Estimated fare</p><p className="text-2xl font-bold text-gray-900">₹{fare}</p></div><button disabled={submitting} className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"><CreditCard size={18} />{submitting ? 'Issuing…' : 'Issue digital ticket'}</button></div>
             </form>
 
-            {latestTicket ? <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-blue-900 p-6 text-white shadow-lg"><div className="mb-6 flex items-start justify-between"><div><p className="text-sm text-blue-200">Active ticket</p><h2 className="mt-1 text-xl font-bold">{latestTicket.routeNumber}</h2></div><QrCode className="text-blue-200" /></div><div className="mb-5 flex items-center justify-center"><TicketCode value={latestTicket.ticketNumber} /></div><p className="mb-5 text-center font-mono text-sm tracking-widest text-blue-100">{latestTicket.ticketNumber}</p><div className="space-y-3 border-t border-white/20 pt-5 text-sm"><div className="flex justify-between gap-4"><span className="text-blue-200">Journey</span><span className="text-right font-medium">{latestTicket.origin} → {latestTicket.destination}</span></div><div className="flex justify-between"><span className="text-blue-200">Valid until</span><span className="font-medium">{formatDate(latestTicket.validUntil)}</span></div><div className="flex justify-between"><span className="text-blue-200">Fare</span><span className="font-medium">₹{latestTicket.fare}</span></div></div></div> : <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center"><QrCode className="mb-4 text-gray-300" size={56} /><h2 className="font-semibold text-gray-800">Your ticket appears here</h2><p className="mt-2 max-w-xs text-sm text-gray-500">Issue a ticket to get a reference code and boarding-ready ticket.</p></div>}
+            {latestTicket ? <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-blue-900 p-6 text-white shadow-lg"><div className="mb-6 flex items-start justify-between"><div><p className="text-sm text-blue-200">Active ticket</p><h2 className="mt-1 text-xl font-bold">{latestTicket.routeNumber}</h2></div><QrCode className="text-blue-200" /></div><div className="mb-5 flex items-center justify-center"><TicketQrCode value={latestTicket.qrPayload} /></div><p className="mb-5 text-center font-mono text-sm tracking-widest text-blue-100">{latestTicket.ticketNumber}</p><div className="space-y-3 border-t border-white/20 pt-5 text-sm"><div className="flex justify-between gap-4"><span className="text-blue-200">Journey</span><span className="text-right font-medium">{latestTicket.origin} → {latestTicket.destination}</span></div><div className="flex justify-between"><span className="text-blue-200">Valid until</span><span className="font-medium">{formatDate(latestTicket.validUntil)}</span></div><div className="flex justify-between"><span className="text-blue-200">Fare</span><span className="font-medium">₹{latestTicket.fare}</span></div></div></div> : <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center"><QrCode className="mb-4 text-gray-300" size={56} /><h2 className="font-semibold text-gray-800">Your ticket appears here</h2><p className="mt-2 max-w-xs text-sm text-gray-500">Issue a ticket to get a reference code and boarding-ready ticket.</p></div>}
           </div>
 
           <section className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"><div className="mb-5 flex items-center justify-between"><div><h2 className="text-lg font-semibold text-gray-900">Ticket history</h2><p className="text-sm text-gray-500">Your most recent digital tickets</p></div><Clock3 className="text-gray-400" /></div>{tickets.length === 0 ? <p className="rounded-lg bg-gray-50 p-6 text-center text-sm text-gray-500">No tickets yet.</p> : <div className="space-y-3">{tickets.map(ticket => <div key={ticket._id} className="flex flex-col gap-3 rounded-xl border border-gray-100 p-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2"><span className="font-semibold text-gray-900">{ticket.routeNumber}</span><span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">{ticket.status}</span></div><p className="mt-1 text-sm text-gray-600">{ticket.origin} → {ticket.destination} · {ticket.passengerCount} passenger{ticket.passengerCount > 1 ? 's' : ''}</p><p className="mt-1 font-mono text-xs text-gray-400">{ticket.ticketNumber}</p></div><div className="text-left sm:text-right"><p className="font-semibold text-gray-900">₹{ticket.fare}</p><p className="text-xs text-gray-500">{formatDate(ticket.createdAt)}</p></div></div>)}</div>}</section>

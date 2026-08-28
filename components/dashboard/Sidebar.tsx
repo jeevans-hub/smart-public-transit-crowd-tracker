@@ -13,7 +13,7 @@ import {
   Brain,
   Radio,
   Settings
-  ,Ticket
+  ,Ticket, ScanLine
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,6 +36,12 @@ const navItems = [
     label: 'Digital Tickets',
     icon: Ticket,
     description: 'Buy and manage travel tickets'
+  },
+  {
+    href: '/dashboard/tickets/validate',
+    label: 'Validate Tickets',
+    icon: ScanLine,
+    description: 'Check and board passengers'
   },
   { 
     href: '/dashboard/live-vehicles', 

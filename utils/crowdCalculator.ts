@@ -1,4 +1,4 @@
-import { CROWD_THRESHOLDS } from './constants';
+import { CROWD_THRESHOLDS } from './constants.ts';
 
 /**
  * Calculate occupancy percentage from passenger count and vehicle capacity

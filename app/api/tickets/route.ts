@@ -4,8 +4,9 @@ import Ticket from '@/models/Ticket';
 import { Ticket as TicketResponse } from '@/types/ticket';
 import { verifyToken } from '@/utils/helpers';
 import { COOKIE_CONFIG } from '@/utils/constants';
-
-const mockTickets = new Map<string, TicketResponse[]>();
+import { addMockTicket, getMockTickets } from '@/lib/ticketStore';
+import { createTicketQrPayload } from '@/lib/ticketSecurity';
+import { createTicketSchema } from '@/lib/ticketSchemas';
 
 function getUserId(request: NextRequest): string | null {
   const token = request.cookies.get(COOKIE_CONFIG.name)?.value;
@@ -34,11 +35,12 @@ export async function GET(request: NextRequest) {
 
   try {
     await connectDB();
+    await Ticket.updateMany({ userId, status: 'ACTIVE', validUntil: { $lte: new Date() } }, { $set: { status: 'EXPIRED' } });
     const tickets = await Ticket.find({ userId }).sort({ createdAt: -1 }).limit(50);
     return NextResponse.json({ success: true, data: tickets.map(serializeTicket) });
   } catch (error) {
     if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
-      return NextResponse.json({ success: true, data: mockTickets.get(userId) || [] });
+      return NextResponse.json({ success: true, data: getMockTickets(userId) });
     }
     return NextResponse.json({ success: false, error: 'Failed to load tickets' }, { status: 500 });
   }
@@ -49,33 +51,14 @@ export async function POST(request: NextRequest) {
   if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const body = await request.json();
-    const routeId = typeof body.routeId === 'string' ? body.routeId.trim() : '';
-    const routeName = typeof body.routeName === 'string' ? body.routeName.trim() : '';
-    const routeNumber = typeof body.routeNumber === 'string' ? body.routeNumber.trim() : '';
-    const transportType = body.transportType;
-    const origin = typeof body.origin === 'string' ? body.origin.trim() : '';
-    const destination = typeof body.destination === 'string' ? body.destination.trim() : '';
-    const passengerCount = Number(body.passengerCount);
-    const fare = Number(body.fare);
-
-    if (!routeId || !routeName || !routeNumber || !origin || !destination || origin === destination) {
-      return NextResponse.json({ success: false, error: 'Please provide a valid route and journey' }, { status: 400 });
-    }
-    if (!['BUS', 'METRO', 'TRAIN'].includes(transportType)) {
-      return NextResponse.json({ success: false, error: 'Invalid transport type' }, { status: 400 });
-    }
-    if (!Number.isInteger(passengerCount) || passengerCount < 1 || passengerCount > 6) {
-      return NextResponse.json({ success: false, error: 'Passenger count must be between 1 and 6' }, { status: 400 });
-    }
-    if (!Number.isFinite(fare) || fare < 0 || fare > 10000) {
-      return NextResponse.json({ success: false, error: 'Invalid fare' }, { status: 400 });
-    }
+    const parsed = createTicketSchema.safeParse(await request.json());
+    if (!parsed.success) return NextResponse.json({ success: false, error: parsed.error.issues[0]?.message || 'Invalid ticket details' }, { status: 400 });
+    const { routeId, routeName, routeNumber, transportType, origin, destination, passengerCount, fare } = parsed.data;
 
     const validFrom = new Date();
     const validUntil = new Date(validFrom.getTime() + 2 * 60 * 60 * 1000);
     const ticketNumber = createTicketNumber();
-    const qrPayload = JSON.stringify({ ticketNumber, userId, routeId, validUntil: validUntil.toISOString() });
+    const qrPayload = createTicketQrPayload({ ticketNumber, userId, routeId, validUntil: validUntil.toISOString() });
     const ticketData = { ticketNumber, userId, routeId, routeName, routeNumber, transportType, origin, destination, passengerCount, fare, status: 'ACTIVE' as const, validFrom, validUntil, qrPayload };
 
     try {
@@ -85,7 +68,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       if (!(error instanceof Error && error.message.includes('ECONNREFUSED'))) throw error;
       const response: TicketResponse = { ...ticketData, _id: ticketNumber, validFrom: validFrom.toISOString(), validUntil: validUntil.toISOString(), createdAt: validFrom.toISOString() };
-      mockTickets.set(userId, [response, ...(mockTickets.get(userId) || [])]);
+      addMockTicket(response);
       return NextResponse.json({ success: true, data: response }, { status: 201 });
     }
   } catch (error) {

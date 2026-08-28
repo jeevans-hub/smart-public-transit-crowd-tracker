@@ -1,4 +1,4 @@
-export type TicketStatus = 'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
+export type TicketStatus = 'PENDING' | 'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
 
 export interface Ticket {
   _id: string;

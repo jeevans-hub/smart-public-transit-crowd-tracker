@@ -35,7 +35,7 @@ const TicketSchema = new Schema<ITicketDocument>(
     destination: { type: String, required: true, trim: true },
     passengerCount: { type: Number, required: true, min: 1, max: 6 },
     fare: { type: Number, required: true, min: 0 },
-    status: { type: String, enum: ['ACTIVE', 'USED', 'EXPIRED', 'CANCELLED'], default: 'ACTIVE' },
+    status: { type: String, enum: ['PENDING', 'ACTIVE', 'USED', 'EXPIRED', 'CANCELLED'], default: 'ACTIVE' },
     validFrom: { type: Date, required: true },
     validUntil: { type: Date, required: true },
     qrPayload: { type: String, required: true },
