@@ -33,6 +33,24 @@ export function checkRouteCompatibility(
   return { compatible: true, reason: 'The bus serves the destination in the current direction', originIndex, destinationIndex, effectiveStopIds };
 }
 
+export function checkPartialTripCompatibility(
+  route: TransitRoute,
+  tripStopIds: string[],
+  originStopId: string,
+  destinationStopId: string,
+  direction: TransitVehicleDirection,
+): RouteCompatibilityResult {
+  const routeResult = checkRouteCompatibility(route, originStopId, destinationStopId, direction);
+  if (!routeResult.compatible) return routeResult;
+  const effectiveStopIds = direction === 'INBOUND' ? [...tripStopIds].reverse() : [...tripStopIds];
+  const originIndex = effectiveStopIds.indexOf(originStopId);
+  const destinationIndex = effectiveStopIds.indexOf(destinationStopId);
+  if (originIndex < 0 || destinationIndex < 0 || originIndex >= destinationIndex) {
+    return { compatible: false, reason: 'This short-turn or partial trip does not serve the complete requested journey', originIndex, destinationIndex, effectiveStopIds };
+  }
+  return { compatible: true, reason: 'The active trip serves the complete requested journey', originIndex, destinationIndex, effectiveStopIds };
+}
+
 export function isVehicleApproachingStop(
   route: TransitRoute,
   stopId: string,

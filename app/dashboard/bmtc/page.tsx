@@ -66,7 +66,7 @@ export default function BmtcDashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
       <div className="lg:ml-72"><Navbar /><main className="p-6 space-y-6">
-        <PageHeader title="BMTC Transit Tracking" subtitle="Explore Bengaluru routes, stops, vehicles, and crowd estimates" action={<TransitDataSourceBadge source={source} status={providerStatus?.status} provider={providerStatus?.provider} verificationStatus={providerStatus?.verificationStatus} fallbackActive={providerStatus?.fallbackActive} />} />
+        <PageHeader title="BMTC Transit Tracking" subtitle="Explore Bengaluru routes, stops, vehicles, and crowd estimates" action={<TransitDataSourceBadge source={source} status={providerStatus?.status} provider={providerStatus?.provider} verificationStatus={providerStatus?.verificationStatus} fallbackActive={providerStatus?.fallbackActive} activationState={providerStatus?.activation.state} />} />
         <div className={`rounded-xl border p-4 text-sm ${providerStatus?.realFeedVerified ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : providerStatus && !providerStatus.fallbackActive ? 'border-blue-200 bg-blue-50 text-blue-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
           {providerStatus?.realFeedVerified
             ? `Fresh BMTC vehicle data verified from ${providerStatus.sourceName || 'the configured transit provider'}.`
@@ -86,6 +86,7 @@ export default function BmtcDashboardPage() {
             <div><p className="text-gray-500">Newest update</p><p className="mt-1 font-semibold text-gray-900">{providerStatus?.newestVehicleAgeSeconds === null || providerStatus?.newestVehicleAgeSeconds === undefined ? '—' : `${providerStatus.newestVehicleAgeSeconds}s ago`}</p></div>
             <div><p className="text-gray-500">Fallback</p><p className="mt-1 font-semibold text-gray-900">{providerStatus?.fallbackActive ? providerStatus.fallbackReason || 'Demo active' : 'Not active'}</p></div>
           </div>
+          <Link href="/dashboard/bmtc/diagnostics" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-700">Open live-feed diagnostics <ArrowRight size={15} /></Link>
         </section>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="rounded-xl border bg-white p-5"><p className="text-sm text-gray-500">Tracked buses</p><p className="mt-1 text-3xl font-bold text-gray-900">{vehicles.length}</p></div>

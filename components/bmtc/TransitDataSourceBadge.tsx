@@ -4,6 +4,7 @@ import type {
   TransitProviderStatus,
   TransitProviderType,
   TransitProviderVerificationStatus,
+  TransitActivationState,
 } from '@/types/transit';
 
 export default function TransitDataSourceBadge({
@@ -12,12 +13,14 @@ export default function TransitDataSourceBadge({
   provider,
   verificationStatus,
   fallbackActive = source === 'DEMO',
+  activationState,
 }: {
   source: TransitDataSource;
   status?: TransitProviderStatus;
   provider?: TransitProviderType;
   verificationStatus?: TransitProviderVerificationStatus;
   fallbackActive?: boolean;
+  activationState?: TransitActivationState;
 }) {
   const effectiveStatus = status ?? (source === 'BMTC_REALTIME' ? 'LIVE' : 'DEMO');
   const isVerifiedBmtc = source === 'BMTC_REALTIME'
@@ -31,13 +34,15 @@ export default function TransitDataSourceBadge({
   const isDegraded = !fallbackActive
     && !isUnverifiedMoovit
     && (effectiveStatus === 'DEGRADED' || effectiveStatus === 'OFFLINE');
+  const isShadow = activationState === 'LIVE_VALIDATING';
   const style = isVerifiedBmtc
     ? 'bg-emerald-100 text-emerald-800'
-    : isUnverifiedMoovit ? 'bg-blue-100 text-blue-800'
+    : isShadow || isUnverifiedMoovit ? 'bg-blue-100 text-blue-800'
       : isDegraded ? 'bg-orange-100 text-orange-800' : 'bg-amber-100 text-amber-800';
   const label = isVerifiedBmtc
     ? 'LIVE BMTC DATA'
-    : isUnverifiedMoovit ? 'LIVE TRANSIT DATA — UNVERIFIED'
+    : isShadow ? 'LIVE SHADOW MODE'
+      : isUnverifiedMoovit ? 'LIVE TRANSIT DATA — UNVERIFIED'
       : isDegraded ? 'DEGRADED LIVE DATA' : 'DEMO TRANSIT DATA';
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${style}`}>

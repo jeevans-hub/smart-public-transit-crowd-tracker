@@ -125,6 +125,22 @@ For local integration testing without a network provider, set `BMTC_REALTIME_ENA
 
 The Phase 7A APIs require an authenticated dashboard session and expose nearby stops, routes, vehicle positions, vehicle details, stop arrivals, recommendations, crowd predictions, alerts, and provider status.
 
+### Phase 7E live activation and validation
+
+Phase 7E places a reliability gate between any configured provider and users. A successful HTTP response is not sufficient. The feed must authenticate, prove BMTC identity and Bengaluru geography, map realtime entities to static trips/routes/stops, meet freshness and position-quality thresholds, and remain stable for the configured number of consecutive cycles.
+
+Live shadow mode is enabled by default. In shadow mode the provider can be fetched and measured, but the normal dashboard and Socket.IO vehicle, arrival, crowd, and alert streams continue using deterministic demo data. The authenticated diagnostics page is available at `/dashboard/bmtc/diagnostics`; it never exposes keys, authorization headers, secrets, or provider endpoint URLs.
+
+```bash
+npm run transit:readiness
+npm run transit:verify-live
+npm run test:phase7e
+```
+
+The readiness command only examines configuration presence. The verification command performs at most one controlled feed cycle and stops. Keep `BMTC_LIVE_SHADOW_MODE=true` until an authorized account with confirmed Bengaluru/BMTC access has passed the manual checklist in `docs/PHASE_7E_LIVE_VALIDATION_CHECKLIST.md`. Do not disable shadow mode merely because the build passes.
+
+ETA accuracy, crowd agreement, and recommendation quality are reported only when real validation samples exist. With no samples, diagnostics explicitly show those measures as unavailable instead of claiming accuracy. Phase 7 ends here until authorized real-world validation is possible.
+
 ### Phase 7B crowd intelligence
 
 The BMTC module now compares only direction- and destination-compatible buses. Its deterministic recommendation score combines ETA (35%), predicted crowd (35%), delay (15%), crowd confidence (10%), and route fit (5%). Unknown passenger counts remain `null`.

@@ -31,6 +31,14 @@ export class FixtureBmtcProvider implements TransitRealtimeProvider {
     return this.staticData.stops.map((stop) => ({ ...stop, source: 'DEMO' as const }));
   }
 
+  async getStaticValidationContext() {
+    return {
+      tripIds: this.staticData.trips.map((trip) => trip.tripId),
+      routeIds: this.staticData.routes.map((route) => route.routeId),
+      stopIds: this.staticData.stops.map((stop) => stop.stopId),
+    };
+  }
+
   async getVehiclePositions() {
     const now = new Date();
     return (realtimeFixture.vehicles as FixtureVehicle[]).flatMap((fixture) => {

@@ -7,6 +7,53 @@ export type TransitProviderStatus = 'LIVE' | 'DEGRADED' | 'OFFLINE' | 'DEMO';
 export type TransitProviderType = 'GTFS_RT' | 'MOOVIT' | 'FIXTURE' | 'DEMO';
 export type ProviderDataSource = 'LIVE' | 'DEGRADED' | 'DEMO';
 export type TransitProviderVerificationStatus = 'NOT_CONFIGURED' | 'VERIFIED' | 'UNVERIFIED' | 'FAILED';
+export type TransitActivationState = 'NOT_CONFIGURED' | 'CONFIGURED' | 'CONNECTING' | 'AUTHENTICATED' | 'FEED_RECEIVED' | 'IDENTITY_VERIFIED' | 'LIVE_VALIDATING' | 'LIVE_VERIFIED' | 'DEGRADED' | 'FAILED' | 'DEMO_FALLBACK';
+export type TransitActivationDecision = 'ALLOW_LIVE' | 'KEEP_SHADOW' | 'DEGRADE' | 'FALLBACK_DEMO';
+export type TransitMappingGrade = 'GOOD' | 'DEGRADED' | 'FAIL';
+
+export interface TransitStaticValidationContext {
+  tripIds: string[];
+  routeIds: string[];
+  stopIds: string[];
+}
+
+export interface TransitMappingMetrics {
+  vehicleToTripPercent: number;
+  tripToRoutePercent: number;
+  tripUpdateToStaticTripPercent: number;
+  stopTimeToStaticStopPercent: number;
+  overallPercent: number;
+  grade: TransitMappingGrade;
+}
+
+export interface TransitFreshnessMetrics {
+  newestAgeSeconds: number | null;
+  medianAgeSeconds: number | null;
+  oldestAgeSeconds: number | null;
+  freshCount: number;
+  staleCount: number;
+  freshPercent: number;
+}
+
+export interface TransitPositionMetrics {
+  validCount: number;
+  suspiciousCount: number;
+  invalidCount: number;
+  rejectedCount: number;
+}
+
+export interface TransitActivationSnapshot {
+  state: TransitActivationState;
+  decision: TransitActivationDecision;
+  reasons: string[];
+  shadowMode: boolean;
+  successfulCycles: number;
+  requiredSuccessfulCycles: number;
+  mapping: TransitMappingMetrics | null;
+  freshness: TransitFreshnessMetrics | null;
+  positions: TransitPositionMetrics | null;
+  evaluatedAt: string;
+}
 
 export interface TransitStop {
   stopId: string;
@@ -138,6 +185,7 @@ export interface TransitFeedHealth {
   vehicleCount: number;
   tripUpdateCount: number;
   newestVehicleAgeSeconds: number | null;
+  activation: TransitActivationSnapshot;
   checkedAt: string;
 }
 
@@ -166,5 +214,6 @@ export interface TransitRealtimeProvider {
   getServiceAlerts?(): Promise<TransitServiceAlert[]>;
   getFeedHealth?(): Promise<Partial<TransitFeedHealth>>;
   getProviderMetadata?(): TransitProviderMetadata;
+  getStaticValidationContext?(): Promise<TransitStaticValidationContext>;
   verifySnapshot?(snapshot: TransitProviderSnapshot): TransitProviderVerification;
 }

@@ -52,6 +52,15 @@ export class BmtcRealtimeProvider implements TransitRealtimeProvider {
     return (await this.getStaticData()).stops;
   }
 
+  async getStaticValidationContext() {
+    const data = await this.getStaticData();
+    return {
+      tripIds: data.trips.map((trip) => trip.tripId),
+      routeIds: data.routes.map((route) => route.routeId),
+      stopIds: data.stops.map((stop) => stop.stopId),
+    };
+  }
+
   async getVehiclePositions() {
     const staticData = await this.getStaticData();
     const realtime = await loadGtfsRealtime(this.config.vehiclePositionsUrl, {

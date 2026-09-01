@@ -1,5 +1,6 @@
 import type {
   TransitFeedHealth,
+  TransitActivationSnapshot,
   TransitProviderMetadata,
   TransitProviderType,
   TransitProviderVerification,
@@ -18,6 +19,7 @@ interface SuccessInput {
   verification?: TransitProviderVerification;
   metadata?: TransitProviderMetadata;
   now?: Date;
+  activation?: TransitActivationSnapshot;
 }
 
 function safeErrorMessage(error: unknown): string {
@@ -52,6 +54,11 @@ export class ProviderHealthService {
     vehicleCount: 0,
     tripUpdateCount: 0,
     newestVehicleAgeSeconds: null,
+    activation: {
+      state: 'NOT_CONFIGURED', decision: 'FALLBACK_DEMO', reasons: ['Real provider is not configured'],
+      shadowMode: true, successfulCycles: 0, requiredSuccessfulCycles: 10,
+      mapping: null, freshness: null, positions: null, evaluatedAt: new Date().toISOString(),
+    },
     checkedAt: new Date().toISOString(),
   };
 
@@ -77,6 +84,12 @@ export class ProviderHealthService {
       vehicleCount: 0,
       tripUpdateCount: 0,
       newestVehicleAgeSeconds: null,
+      activation: {
+        ...this.state.activation,
+        state: configured ? 'DEMO_FALLBACK' : 'NOT_CONFIGURED',
+        decision: 'FALLBACK_DEMO', reasons: [reason], successfulCycles: 0,
+        evaluatedAt: new Date().toISOString(),
+      },
       checkedAt: new Date().toISOString(),
     };
   }
@@ -99,6 +112,11 @@ export class ProviderHealthService {
       sourceTermsUrl,
       metroId: metadata?.metroId ?? null,
       agencyId: metadata?.agencyId ?? null,
+      activation: {
+        ...this.state.activation, state: 'CONFIGURED', decision: 'KEEP_SHADOW',
+        reasons: ['Provider is configured; reliability validation has not completed'],
+        evaluatedAt: new Date().toISOString(),
+      },
       checkedAt: new Date().toISOString(),
     };
   }
@@ -130,12 +148,18 @@ export class ProviderHealthService {
       return this.getSnapshot();
     }
 
-    const verified = verification.status === 'VERIFIED';
+    const activation = input.activation ?? {
+      state: 'LIVE_VERIFIED' as const, decision: 'ALLOW_LIVE' as const, reasons: ['Legacy health check passed'],
+      shadowMode: false, successfulCycles: 1, requiredSuccessfulCycles: 1,
+      mapping: null, freshness: null, positions: null, evaluatedAt: now.toISOString(),
+    };
+    const verified = verification.status === 'VERIFIED' && activation.decision === 'ALLOW_LIVE';
+    const shadowOrFallback = activation.decision !== 'ALLOW_LIVE';
     this.state = {
       ...this.state,
-      status: verified ? 'LIVE' : 'DEGRADED',
+      status: verified ? 'LIVE' : activation.decision === 'FALLBACK_DEMO' ? 'OFFLINE' : 'DEGRADED',
       provider: input.provider,
-      dataSource: verified ? 'LIVE' : 'DEGRADED',
+      dataSource: verified ? 'LIVE' : activation.decision === 'DEGRADE' ? 'DEGRADED' : 'DEMO',
       configured: true,
       configurationValid: true,
       realFeedVerified: verified,
@@ -145,8 +169,8 @@ export class ProviderHealthService {
       sourceTermsUrl: input.sourceTermsUrl,
       metroId: input.metadata?.metroId ?? this.state.metroId,
       agencyId: input.metadata?.agencyId ?? this.state.agencyId,
-      fallbackActive: false,
-      fallbackReason: null,
+      fallbackActive: shadowOrFallback,
+      fallbackReason: shadowOrFallback ? activation.reasons.join('; ') : null,
       lastSuccessfulFetch: now.toISOString(),
       failureMessage: null,
       consecutiveFailures: 0,
@@ -154,6 +178,7 @@ export class ProviderHealthService {
       vehicleCount: liveVehicles.length,
       tripUpdateCount: Math.max(0, input.tripUpdateCount ?? 0),
       newestVehicleAgeSeconds: age,
+      activation,
       checkedAt: now.toISOString(),
     };
     return this.getSnapshot();
@@ -183,6 +208,11 @@ export class ProviderHealthService {
       vehicleCount: 0,
       tripUpdateCount: 0,
       newestVehicleAgeSeconds: null,
+      activation: {
+        ...this.state.activation,
+        state: 'FAILED', decision: 'FALLBACK_DEMO', reasons: [safeErrorMessage(error)], successfulCycles: 0,
+        evaluatedAt: now.toISOString(),
+      },
       checkedAt: now.toISOString(),
     };
     return this.getSnapshot();
@@ -206,6 +236,11 @@ export class ProviderHealthService {
         realFeedVerified: false,
         fallbackActive: true,
         fallbackReason: 'Real provider data became stale; demo fallback is active',
+        activation: {
+          ...this.state.activation,
+          state: 'DEGRADED', decision: 'FALLBACK_DEMO', reasons: ['Real provider data became stale'],
+          successfulCycles: 0, evaluatedAt: now.toISOString(),
+        },
       };
     }
     return this.getSnapshot();

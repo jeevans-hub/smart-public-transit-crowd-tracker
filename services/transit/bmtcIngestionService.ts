@@ -12,8 +12,12 @@ import type {
 import { SERVER_EVENTS } from '../../utils/eventNames';
 import { applyVehicleFreshness, isVehicleStale } from '../../utils/staleVehicle';
 import { rejectDuplicateVehicleUpdates } from '../../utils/transitDeduplication';
+import { validateTransitPosition } from '../../utils/transitPositionValidator';
 import { GtfsRealtimeFetchError } from './gtfs/gtfsRealtimeLoader';
+import { liveActivationService } from './liveActivationService';
+import { calculateFreshnessMetrics, calculateMappingMetrics, verifyGenericBmtcFeed } from './liveFeedValidationService';
 import { providerHealthService } from './providerHealthService';
+import { providerReliabilityService } from './providerReliabilityService';
 import { createTransitProvider, type TransitProviderSelection } from './transitProviderFactory';
 
 export interface BmtcDataSnapshot {
@@ -98,18 +102,45 @@ export class BmtcIngestionService {
     const startedAt = Date.now();
     try {
       const provider = this.selection.provider;
-      const [routes, stops, incomingVehicles, tripUpdates, serviceAlerts] = await Promise.all([
+      const [routes, stops, incomingVehicles, tripUpdates, serviceAlerts, validationContext] = await Promise.all([
         provider.getRoutes(),
         provider.getStops(),
         provider.getVehiclePositions(),
         provider.getTripUpdates?.() ?? Promise.resolve([]),
         provider.getServiceAlerts?.() ?? Promise.resolve([]),
+        provider.getStaticValidationContext?.() ?? Promise.resolve({ tripIds: [], routeIds: [], stopIds: [] }),
       ]);
-      const freshnessCheckedVehicles = applyVehicleFreshness(incomingVehicles, this.staleAfterSeconds);
+      const positionResults = incomingVehicles.map((vehicle) => ({
+        vehicle,
+        validation: validateTransitPosition(vehicle, { previous: this.vehicles.get(vehicle.vehicleId), staleAfterSeconds: this.staleAfterSeconds }),
+      }));
+      const positionMetrics = {
+        validCount: positionResults.filter((item) => item.validation.status === 'VALID').length,
+        suspiciousCount: positionResults.filter((item) => item.validation.status === 'SUSPICIOUS').length,
+        invalidCount: positionResults.filter((item) => item.validation.status === 'INVALID').length,
+        rejectedCount: positionResults.filter((item) => item.validation.status === 'INVALID').length,
+      };
+      const validatedVehicles = positionResults.filter((item) => item.validation.status !== 'INVALID').map((item) => item.vehicle);
+      const freshnessCheckedVehicles = applyVehicleFreshness(validatedVehicles, this.staleAfterSeconds);
       const verification = provider.verifySnapshot?.({
         routes,
         vehicles: freshnessCheckedVehicles,
         tripUpdates,
+      }) ?? verifyGenericBmtcFeed(routes, freshnessCheckedVehicles, tripUpdates);
+      const mapping = calculateMappingMetrics(freshnessCheckedVehicles, tripUpdates, validationContext, {
+        good: Number(process.env.BMTC_MAPPING_GOOD_PERCENT) || 95,
+        minimum: Number(process.env.BMTC_MAPPING_MIN_PERCENT) || 80,
+      });
+      const freshness = calculateFreshnessMetrics(freshnessCheckedVehicles, this.staleAfterSeconds);
+      const activation = liveActivationService.evaluate({
+        configured: true,
+        authenticated: true,
+        verification,
+        mapping,
+        freshness,
+        positions: positionMetrics,
+        vehicleCount: freshness.freshCount,
+        requestSucceeded: true,
       });
       const verifiedSource = !verification || verification.status === 'VERIFIED';
       const freshVehicles = freshnessCheckedVehicles.map((vehicle) => ({
@@ -134,12 +165,13 @@ export class BmtcIngestionService {
         staleAfterSeconds: this.staleAfterSeconds,
         verification,
         metadata: provider.getProviderMetadata?.(),
+        activation,
       });
-      if (health.fallbackActive) {
-        this.scheduleBackoff(null);
-        this.emitProviderStatus(health);
-        return;
-      }
+      providerReliabilityService.recordSuccess(Date.now() - startedAt, {
+        provider: this.selection.mode,
+        activation,
+        vehicleCount: freshness.freshCount,
+      });
 
       this.routes = routes;
       this.stops = stops;
@@ -155,7 +187,8 @@ export class BmtcIngestionService {
       const accepted = rejectDuplicateVehicleUpdates(freshVehicles, this.versions);
       this.vehicles = new Map(freshVehicles.map((vehicle) => [vehicle.vehicleId, vehicle]));
       this.nextAttemptAt = Date.now() + this.refreshIntervalMs;
-      if (accepted.length > 0) {
+      const allowLive = activation.decision === 'ALLOW_LIVE';
+      if (allowLive && accepted.length > 0) {
         await this.persistVehicles(accepted);
         if (socketServer.isActive()) {
           socketServer.broadcast(SERVER_EVENTS.BMTC_VEHICLE_UPDATE, { vehicles: accepted, timestamp: new Date().toISOString() });
@@ -166,14 +199,16 @@ export class BmtcIngestionService {
           }
         }
       }
-      if (socketServer.isActive() && tripUpdatesChanged && this.tripUpdates.length > 0) {
+      if (allowLive && socketServer.isActive() && tripUpdatesChanged && this.tripUpdates.length > 0) {
         socketServer.broadcast(SERVER_EVENTS.BMTC_ARRIVAL_UPDATE, { tripUpdates: this.tripUpdates });
       }
-      if (socketServer.isActive() && serviceAlertsChanged && this.serviceAlerts.length > 0) {
+      if (allowLive && socketServer.isActive() && serviceAlertsChanged && this.serviceAlerts.length > 0) {
         socketServer.broadcast(SERVER_EVENTS.BMTC_ALERT, { alerts: this.serviceAlerts });
       }
       this.emitProviderStatus(health);
     } catch (error) {
+      liveActivationService.recordFailure(true, error instanceof Error ? error.message : 'Provider request failed');
+      providerReliabilityService.recordFailure(error, this.selection.mode);
       const health = providerHealthService.recordFailure(error, this.selection.mode);
       this.scheduleBackoff(error);
       structuredWarning('feed-refresh-failed', error, { consecutiveFailures: health.consecutiveFailures, status: health.status });
