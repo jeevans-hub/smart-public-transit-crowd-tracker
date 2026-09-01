@@ -1,0 +1,37 @@
+{
+  "vehicles": [
+    {
+      "entityId": "fixture-entity-1",
+      "vehicleId": "fixture-bus-1",
+      "vehicleLabel": "KA-01-FIXTURE",
+      "tripId": "fixture-trip-242a-out",
+      "routeId": "fixture-route-242a",
+      "directionId": 0,
+      "latitude": 12.965,
+      "longitude": 77.525,
+      "bearing": 240,
+      "speedMetersPerSecond": 7.5,
+      "timestampAgeSeconds": 5,
+      "stopId": "fixture-vijayanagar",
+      "currentStopSequence": 2,
+      "currentStatus": 2,
+      "occupancyStatus": 2,
+      "occupancyPercentage": null
+    }
+  ],
+  "tripUpdates": [
+    {
+      "entityId": "fixture-trip-update-1",
+      "tripId": "fixture-trip-242a-out",
+      "routeId": "fixture-route-242a",
+      "vehicleId": "fixture-bus-1",
+      "directionId": 0,
+      "timestampAgeSeconds": 5,
+      "stopTimeUpdates": [
+        { "stopId": "fixture-vijayanagar", "stopSequence": 2, "arrivalInSeconds": 180, "departureInSeconds": 240, "delaySeconds": 60 },
+        { "stopId": "fixture-kengeri", "stopSequence": 3, "arrivalInSeconds": 1200, "departureInSeconds": 1200, "delaySeconds": 60 }
+      ]
+    }
+  ],
+  "alerts": []
+}

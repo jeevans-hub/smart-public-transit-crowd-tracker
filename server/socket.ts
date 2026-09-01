@@ -389,6 +389,31 @@ class SocketServer {
   }
 
   /**
+   * BMTC intelligence event broadcasts. These use the existing singleton
+   * Socket.IO server; no additional realtime server is created.
+   */
+  public broadcastBmtcCrowdUpdate(data: unknown): void {
+    this.broadcast(SERVER_EVENTS.BMTC_CROWD_UPDATE, data);
+  }
+
+  public broadcastBmtcRecommendationUpdate(data: unknown): void {
+    this.broadcast(SERVER_EVENTS.BMTC_RECOMMENDATION_UPDATE, data);
+  }
+
+  public broadcastBmtcRushUpdate(data: unknown): void {
+    this.broadcast(SERVER_EVENTS.BMTC_RUSH_UPDATE, data);
+  }
+
+  public broadcastBmtcAlert(data: unknown): void {
+    this.broadcast(SERVER_EVENTS.BMTC_ALERT, data);
+    this.broadcast(SERVER_EVENTS.ALERT_NEW, data);
+  }
+
+  public broadcastBmtcProviderStatus(data: unknown): void {
+    this.broadcast(SERVER_EVENTS.BMTC_PROVIDER_STATUS, data);
+  }
+
+  /**
    * Prediction event broadcasts
    */
   public broadcastPredictionGenerated(prediction: any): void {

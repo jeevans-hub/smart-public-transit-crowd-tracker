@@ -1,0 +1,26 @@
+{
+  "stops": [
+    { "stop_id": "fixture-majestic", "stop_name": "Kempegowda Bus Station", "stop_lat": "12.9767", "stop_lon": "77.5713", "zone_id": "Majestic" },
+    { "stop_id": "fixture-vijayanagar", "stop_name": "Vijayanagar Bus Stop", "stop_lat": "12.9719", "stop_lon": "77.5352", "zone_id": "Vijayanagar" },
+    { "stop_id": "fixture-kengeri", "stop_name": "Kengeri Satellite Town", "stop_lat": "12.9141", "stop_lon": "77.4827", "zone_id": "Kengeri" }
+  ],
+  "routes": [
+    { "route_id": "fixture-route-242a", "route_short_name": "242A", "route_long_name": "Majestic – Kengeri", "route_type": "3" }
+  ],
+  "trips": [
+    { "route_id": "fixture-route-242a", "service_id": "daily", "trip_id": "fixture-trip-242a-out", "trip_headsign": "Kengeri", "direction_id": "0", "shape_id": "fixture-shape-242a" }
+  ],
+  "stopTimes": [
+    { "trip_id": "fixture-trip-242a-out", "arrival_time": "08:00:00", "departure_time": "08:00:00", "stop_id": "fixture-majestic", "stop_sequence": "1" },
+    { "trip_id": "fixture-trip-242a-out", "arrival_time": "08:20:00", "departure_time": "08:21:00", "stop_id": "fixture-vijayanagar", "stop_sequence": "2" },
+    { "trip_id": "fixture-trip-242a-out", "arrival_time": "08:50:00", "departure_time": "08:50:00", "stop_id": "fixture-kengeri", "stop_sequence": "3" }
+  ],
+  "calendar": [
+    { "service_id": "daily", "monday": "1", "tuesday": "1", "wednesday": "1", "thursday": "1", "friday": "1", "saturday": "1", "sunday": "1", "start_date": "20260101", "end_date": "20261231" }
+  ],
+  "calendarDates": [],
+  "shapes": [
+    { "shape_id": "fixture-shape-242a", "shape_pt_lat": "12.9767", "shape_pt_lon": "77.5713", "shape_pt_sequence": "1" },
+    { "shape_id": "fixture-shape-242a", "shape_pt_lat": "12.9141", "shape_pt_lon": "77.4827", "shape_pt_sequence": "2" }
+  ]
+}

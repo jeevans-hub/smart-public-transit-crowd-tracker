@@ -12,8 +12,10 @@ import {
   ChevronDown,
   Brain,
   Radio,
-  Settings
-  ,Ticket, ScanLine
+  Settings,
+  Ticket,
+  ScanLine,
+  LocateFixed,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -48,6 +50,18 @@ const navItems = [
     label: 'Live Vehicles', 
     icon: Radio,
     description: 'Real-time vehicle tracking'
+  },
+  {
+    href: '/dashboard/bmtc',
+    label: 'BMTC Live Tracking',
+    icon: Radio,
+    description: 'Bengaluru routes and demo vehicles'
+  },
+  {
+    href: '/dashboard/bmtc/nearby',
+    label: 'Nearby Stops',
+    icon: LocateFixed,
+    description: 'Find stops and arrivals nearby'
   },
   { 
     href: '/dashboard/predictions', 

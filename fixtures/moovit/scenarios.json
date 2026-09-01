@@ -1,0 +1,64 @@
+{
+  "agencyId": "12345",
+  "static": {
+    "agency": [
+      {
+        "agency_id": "12345",
+        "agency_name": "Bangalore Metropolitan Transport Corporation (BMTC)",
+        "agency_url": "https://mybmtc.karnataka.gov.in",
+        "agency_timezone": "Asia/Kolkata"
+      }
+    ],
+    "stops": [
+      { "stop_id": "moovit-origin", "stop_name": "Kempegowda Bus Station", "stop_lat": "12.9767", "stop_lon": "77.5713" },
+      { "stop_id": "moovit-middle", "stop_name": "Vijayanagar", "stop_lat": "12.9719", "stop_lon": "77.5352" },
+      { "stop_id": "moovit-destination", "stop_name": "Kengeri", "stop_lat": "12.9141", "stop_lon": "77.4827" }
+    ],
+    "routes": [
+      { "route_id": "moovit-route-242a", "agency_id": "12345", "route_short_name": "242A", "route_long_name": "Majestic to Kengeri", "route_type": "3" }
+    ],
+    "trips": [
+      { "route_id": "moovit-route-242a", "service_id": "daily", "trip_id": "moovit-trip-242a", "trip_headsign": "Kengeri", "direction_id": "0" }
+    ],
+    "stopTimes": [
+      { "trip_id": "moovit-trip-242a", "stop_id": "moovit-origin", "stop_sequence": "1" },
+      { "trip_id": "moovit-trip-242a", "stop_id": "moovit-middle", "stop_sequence": "2" },
+      { "trip_id": "moovit-trip-242a", "stop_id": "moovit-destination", "stop_sequence": "3" }
+    ],
+    "calendar": [],
+    "calendarDates": [],
+    "shapes": []
+  },
+  "freshVehicle": {
+    "entityId": "moovit-vehicle-entity",
+    "vehicleId": "moovit-bus-1",
+    "vehicleLabel": "KA-01-MV-001",
+    "tripId": "moovit-trip-242a",
+    "routeId": "moovit-route-242a",
+    "directionId": 0,
+    "latitude": 12.965,
+    "longitude": 77.525,
+    "bearing": 240,
+    "speedMetersPerSecond": 7.5,
+    "timestampAgeSeconds": 10,
+    "stopId": "moovit-middle",
+    "currentStopSequence": 2,
+    "currentStatus": 2,
+    "occupancyStatus": 3,
+    "occupancyPercentage": null
+  },
+  "wrongRegionVehicle": {
+    "latitude": 40.7128,
+    "longitude": -74.006
+  },
+  "tripUpdate": {
+    "entityId": "moovit-trip-entity",
+    "tripId": "moovit-trip-242a",
+    "routeId": "moovit-route-242a",
+    "vehicleId": "moovit-bus-1",
+    "directionId": 0,
+    "timestampAgeSeconds": 10,
+    "arrivalInSeconds": 600,
+    "delaySeconds": 120
+  }
+}

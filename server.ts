@@ -2,6 +2,7 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { parse } from 'url';
 import next from 'next';
 import { socketServer } from './server/socket';
+import { bmtcIngestionService } from './services/transit/bmtcIngestionService';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -30,6 +31,13 @@ app.prepare().then(() => {
       origin: process.env.NEXT_PUBLIC_APP_URL || `http://${hostname}:${port}`,
       credentials: true,
     },
+  });
+
+  void bmtcIngestionService.start().catch((error) => {
+    console.warn('[BMTC Provider]', {
+      event: 'ingestion-start-failed',
+      message: error instanceof Error ? error.message.slice(0, 300) : 'Unknown startup error',
+    });
   });
 
   server.listen(port, () => {

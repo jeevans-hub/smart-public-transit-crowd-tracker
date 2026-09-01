@@ -66,6 +66,17 @@ export const SERVER_EVENTS = {
   CITY_HEALTH_UPDATE: 'cityHealth:update',
   NETWORK_GRAPH_UPDATE: 'networkGraph:update',
   RECOMMENDATION_UPDATE: 'recommendation:update',
+
+  // BMTC provider events
+  BMTC_VEHICLE_UPDATE: 'bmtc:vehicle:update',
+  BMTC_VEHICLE_MOVED: 'bmtc:vehicle:moved',
+  BMTC_ARRIVAL_UPDATE: 'bmtc:arrival:update',
+  BMTC_CROWD_UPDATE: 'bmtc:crowd:update',
+  BMTC_RECOMMENDATION_UPDATE: 'bmtc:recommendation:update',
+  BMTC_RUSH_UPDATE: 'bmtc:rush:update',
+  BMTC_ALERT: 'bmtc:alert',
+  BMTC_SYSTEM_UPDATE: 'bmtc:system:update',
+  BMTC_PROVIDER_STATUS: 'bmtc:provider:status',
 } as const;
 
 // Client to Server Events
