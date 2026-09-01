@@ -7,6 +7,7 @@ import type {
   TransitVehicle,
 } from '../../types/transit';
 import { newestVehicleAgeSeconds } from '../../utils/staleVehicle.ts';
+import { normalizeTransitFeedHealth } from '../../utils/providerStatus.ts';
 
 interface SuccessInput {
   provider: TransitProviderType;
@@ -247,7 +248,7 @@ export class ProviderHealthService {
   }
 
   getSnapshot(): TransitFeedHealth {
-    return { ...this.state };
+    return normalizeTransitFeedHealth(this.state);
   }
 }
 

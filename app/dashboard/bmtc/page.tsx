@@ -66,7 +66,7 @@ export default function BmtcDashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
       <div className="lg:ml-72"><Navbar /><main className="p-6 space-y-6">
-        <PageHeader title="BMTC Transit Tracking" subtitle="Explore Bengaluru routes, stops, vehicles, and crowd estimates" action={<TransitDataSourceBadge source={source} status={providerStatus?.status} provider={providerStatus?.provider} verificationStatus={providerStatus?.verificationStatus} fallbackActive={providerStatus?.fallbackActive} activationState={providerStatus?.activation.state} />} />
+        <PageHeader title="BMTC Transit Tracking" subtitle="Explore Bengaluru routes, stops, vehicles, and crowd estimates" action={<TransitDataSourceBadge source={source} status={providerStatus?.status} provider={providerStatus?.provider} verificationStatus={providerStatus?.verificationStatus} fallbackActive={providerStatus?.fallbackActive} activationState={providerStatus?.activation?.state} />} />
         <div className={`rounded-xl border p-4 text-sm ${providerStatus?.realFeedVerified ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : providerStatus && !providerStatus.fallbackActive ? 'border-blue-200 bg-blue-50 text-blue-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
           {providerStatus?.realFeedVerified
             ? `Fresh BMTC vehicle data verified from ${providerStatus.sourceName || 'the configured transit provider'}.`

@@ -6,6 +6,7 @@ import type {
   TransitProviderVerificationStatus,
   TransitActivationState,
 } from '@/types/transit';
+import { getTransitDataSourceBadgeState } from '@/utils/transitDataSourceBadge';
 
 export default function TransitDataSourceBadge({
   source,
@@ -15,39 +16,18 @@ export default function TransitDataSourceBadge({
   fallbackActive = source === 'DEMO',
   activationState,
 }: {
-  source: TransitDataSource;
+  source?: TransitDataSource;
   status?: TransitProviderStatus;
   provider?: TransitProviderType;
   verificationStatus?: TransitProviderVerificationStatus;
   fallbackActive?: boolean;
   activationState?: TransitActivationState;
 }) {
-  const effectiveStatus = status ?? (source === 'BMTC_REALTIME' ? 'LIVE' : 'DEMO');
-  const isVerifiedBmtc = source === 'BMTC_REALTIME'
-    && effectiveStatus === 'LIVE'
-    && (verificationStatus === 'VERIFIED' || verificationStatus === undefined)
-    && !fallbackActive;
-  const isUnverifiedMoovit = source === 'EXTERNAL'
-    && (provider === 'MOOVIT' || provider === undefined)
-    && (verificationStatus === 'UNVERIFIED' || verificationStatus === undefined)
-    && !fallbackActive;
-  const isDegraded = !fallbackActive
-    && !isUnverifiedMoovit
-    && (effectiveStatus === 'DEGRADED' || effectiveStatus === 'OFFLINE');
-  const isShadow = activationState === 'LIVE_VALIDATING';
-  const style = isVerifiedBmtc
-    ? 'bg-emerald-100 text-emerald-800'
-    : isShadow || isUnverifiedMoovit ? 'bg-blue-100 text-blue-800'
-      : isDegraded ? 'bg-orange-100 text-orange-800' : 'bg-amber-100 text-amber-800';
-  const label = isVerifiedBmtc
-    ? 'LIVE BMTC DATA'
-    : isShadow ? 'LIVE SHADOW MODE'
-      : isUnverifiedMoovit ? 'LIVE TRANSIT DATA — UNVERIFIED'
-      : isDegraded ? 'DEGRADED LIVE DATA' : 'DEMO TRANSIT DATA';
+  const badge = getTransitDataSourceBadgeState({ source, status, provider, verificationStatus, fallbackActive, activationState });
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${style}`}>
-      {isVerifiedBmtc || isUnverifiedMoovit ? <Wifi size={13} /> : <WifiOff size={13} />}
-      {label}
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${badge.style}`}>
+      {badge.connected ? <Wifi size={13} /> : <WifiOff size={13} />}
+      {badge.label}
     </span>
   );
 }
