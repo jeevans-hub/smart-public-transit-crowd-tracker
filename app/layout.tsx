@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
-import { ThemeProvider } from "@/contexts/ThemeProvider";
-import { LanguageProvider } from "@/contexts/LanguageProvider";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -17,7 +15,7 @@ import { LanguageProvider } from "@/contexts/LanguageProvider";
 
 export const metadata: Metadata = {
   title: "Smart Public Transit Crowd Tracker",
-  description: "Real-time crowd monitoring and digital ticketing platform",
+  description: "BMTC routes, crowd forecasts, smart bus recommendations, and secure digital tickets",
 };
 
 export default function RootLayout({
@@ -31,11 +29,7 @@ export default function RootLayout({
       className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col">
-        <LanguageProvider>
-          <ThemeProvider>
-            <AuthProvider>{children}</AuthProvider>
-          </ThemeProvider>
-        </LanguageProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

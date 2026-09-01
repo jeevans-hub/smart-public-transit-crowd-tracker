@@ -43,9 +43,6 @@ export async function GET(request: NextRequest) {
           email: user.email,
           avatar: user.avatar,
           role: user.role,
-          level: user.level,
-          experience: user.experience,
-          coins: user.coins,
         },
       });
     } catch (dbError) {
@@ -67,9 +64,6 @@ export async function GET(request: NextRequest) {
             email: `${username}@example.com`,
             avatar: null,
             role: 'user',
-            level: 1,
-            experience: 0,
-            coins: 100,
           },
         });
       }

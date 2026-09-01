@@ -1,37 +1,12 @@
-import mongoose from 'mongoose';
-import CrowdReport from '@/models/CrowdReport';
 import type { CrowdEstimate } from '@/types/transit';
 import type { CrowdIntelligence, RushHourPrediction, TransitCrowdAggregate, TransitCrowdObservation } from '@/types/recommendation';
 import { aggregateTransitCrowdHistory, filterCrowdHistory } from '@/utils/transitCrowdAggregation';
 import { calculateCrowdIntelligence } from '@/utils/transitCrowdIntelligence';
 
-const CACHE_TTL_MS = 60_000;
-const historyCache = new Map<string, { expiresAt: number; observations: TransitCrowdObservation[] }>();
-
-async function loadObservations(routeId?: string, stopId?: string): Promise<TransitCrowdObservation[]> {
-  const cacheKey = `${routeId || '*'}:${stopId || '*'}`;
-  const cached = historyCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) return cached.observations;
-
-  if (mongoose.connection.readyState !== 1) return [];
-  try {
-    const query: { routeId?: string; stationId?: string } = {};
-    if (routeId) query.routeId = routeId;
-    if (stopId) query.stationId = stopId;
-    const reports = await CrowdReport.find(query).sort({ createdAt: -1 }).limit(250);
-    const observations = reports.map((report) => ({
-      routeId: report.routeId,
-      stopId: report.stationId,
-      timestamp: report.createdAt,
-      crowdScore: report.occupancyPercentage,
-      demandScore: report.occupancyPercentage,
-      delayMinutes: 0,
-    }));
-    historyCache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, observations });
-    return observations;
-  } catch {
-    return [];
-  }
+async function loadObservations(): Promise<TransitCrowdObservation[]> {
+  // Version 1.0 does not collect passenger-submitted crowd reports. The
+  // provider occupancy and deterministic rush model remain the active inputs.
+  return [];
 }
 
 export async function getHistoricalCrowdAggregate(input: {
@@ -40,7 +15,7 @@ export async function getHistoricalCrowdAggregate(input: {
   hour?: number;
   weekday?: number;
 }): Promise<TransitCrowdAggregate> {
-  const observations = await loadObservations(input.routeId, input.stopId);
+  const observations = await loadObservations();
   return aggregateTransitCrowdHistory(filterCrowdHistory(observations, input));
 }
 

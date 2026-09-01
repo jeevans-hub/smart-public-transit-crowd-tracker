@@ -3,15 +3,15 @@ import { bmtcIngestionService } from '@/services/transit/bmtcIngestionService';
 import { calculateCrowdValidation } from '@/services/transit/qualityValidationService';
 import { calculateEtaValidationMetrics } from '@/services/transit/etaValidationService';
 import { providerReliabilityService } from '@/services/transit/providerReliabilityService';
-import { COOKIE_CONFIG } from '@/utils/constants';
-import { verifyToken } from '@/utils/helpers';
 import { normalizeTransitFeedHealth } from '@/utils/providerStatus';
+import { authorizeRequest, PROVIDER_DIAGNOSTIC_ROLES } from '@/utils/authorization';
 
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get(COOKIE_CONFIG.name)?.value;
-  if (!token || !verifyToken(token)) {
+  const access = await authorizeRequest(request, PROVIDER_DIAGNOSTIC_ROLES);
+  if (!access.authenticated) {
     return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication is required' } }, { status: 401 });
   }
+  if (!access.authorized) return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Administrator access is required' } }, { status: 403 });
   const health = normalizeTransitFeedHealth(bmtcIngestionService.getProviderStatus());
   return NextResponse.json({
     success: true,

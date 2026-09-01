@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const token = generateToken(user._id.toString(), user.username);
+      const token = generateToken(user._id.toString(), user.username, user.role);
 
       const response = NextResponse.json({
         success: true,
@@ -47,9 +47,6 @@ export async function POST(request: NextRequest) {
           email: user.email,
           avatar: user.avatar,
           role: user.role,
-          level: user.level,
-          experience: user.experience,
-          coins: user.coins,
         },
       });
 
@@ -79,9 +76,6 @@ export async function POST(request: NextRequest) {
             email: email,
             avatar: null,
             role: 'user',
-            level: 1,
-            experience: 0,
-            coins: 100,
           },
         });
 

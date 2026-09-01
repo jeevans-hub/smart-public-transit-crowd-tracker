@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { RealtimeProvider } from '@/contexts/RealtimeProvider';
 
 export default function DashboardLayout({
   children,
@@ -35,11 +34,5 @@ export default function DashboardLayout({
     );
   }
 
-  return (
-    <RealtimeProvider autoConnect={true}>
-      <div className="min-h-screen bg-gray-50">
-        {children}
-      </div>
-    </RealtimeProvider>
-  );
+  return <div className="min-h-screen bg-gray-50">{children}</div>;
 }

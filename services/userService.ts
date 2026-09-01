@@ -30,9 +30,6 @@ export async function updateUser(
     email: string;
     avatar: string;
     role: 'user' | 'admin';
-    level: number;
-    experience: number;
-    coins: number;
   }>
 ): Promise<IUserDocument | null> {
   return User.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
@@ -45,13 +42,6 @@ export function toUserResponse(user: IUserDocument): IUserResponse {
     email: user.email,
     avatar: user.avatar,
     role: user.role,
-    level: user.level,
-    experience: user.experience,
-    coins: user.coins,
-    phoneNumber: user.phoneNumber,
-    phoneVerified: user.phoneVerified,
-    smsAlertsEnabled: user.smsAlertsEnabled,
-    smsAlertThreshold: user.smsAlertThreshold,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

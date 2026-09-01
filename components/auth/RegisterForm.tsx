@@ -41,13 +41,10 @@ export default function RegisterForm({ onClose, onLoginClick }: RegisterFormProp
     setLoading(true);
 
     try {
-      console.log('[RegisterForm] Submitting registration for:', { username, email });
       await register(username, email, password);
-      console.log('[RegisterForm] Registration succeeded!');
       router.push('/dashboard');
-    } catch (err: any) {
-      console.error('[RegisterForm Error Caught]:', err);
-      setError(err.message || 'Registration failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setLoading(false);
     }

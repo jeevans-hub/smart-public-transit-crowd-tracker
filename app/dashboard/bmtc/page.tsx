@@ -9,6 +9,7 @@ import PageHeader from '@/components/dashboard/PageHeader';
 import LoadingSpinner from '@/components/dashboard/LoadingSpinner';
 import TransitDataSourceBadge from '@/components/bmtc/TransitDataSourceBadge';
 import CrowdBadge from '@/components/bmtc/CrowdBadge';
+import BmtcVehicleMap from '@/components/bmtc/BmtcVehicleMap';
 import type { TransitDataSource, TransitFeedHealth, TransitRoute, TransitVehicle } from '@/types/transit';
 import type { BmtcCrowdPrediction } from '@/types/recommendation';
 
@@ -88,6 +89,7 @@ export default function BmtcDashboardPage() {
           </div>
           <Link href="/dashboard/bmtc/diagnostics" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-700">Open live-feed diagnostics <ArrowRight size={15} /></Link>
         </section>
+        <section className="rounded-xl border bg-white p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><div><h2 className="font-bold text-gray-900">BMTC vehicle map</h2><p className="text-sm text-gray-500">Marker colour represents the current estimated crowd level.</p></div><Link href="/dashboard/bmtc/nearby" className="text-sm font-semibold text-blue-700">Find nearby stops</Link></div><BmtcVehicleMap vehicles={vehicles} routes={routes} /></section>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="rounded-xl border bg-white p-5"><p className="text-sm text-gray-500">Tracked buses</p><p className="mt-1 text-3xl font-bold text-gray-900">{vehicles.length}</p></div>
           <div className="rounded-xl border bg-white p-5"><p className="text-sm text-gray-500">Available routes</p><p className="mt-1 text-3xl font-bold text-gray-900">{routes.length}</p></div>

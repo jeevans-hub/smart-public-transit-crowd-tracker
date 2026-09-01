@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Notification, NotificationType, NotificationPriority } from '@/types/notification';
+import type { Notification } from '@/types/notification';
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -66,21 +66,21 @@ export function useNotifications() {
         priority: 'HIGH',
         title: 'High Crowd Alert',
         message: 'Station Central is experiencing high crowd levels (85% occupancy)',
-        actionUrl: '/dashboard/live',
+        actionUrl: '/dashboard/bmtc',
       },
       {
         type: 'PREDICTION',
         priority: 'MEDIUM',
         title: 'Prediction Update',
         message: 'New crowd predictions available for Route 101',
-        actionUrl: '/dashboard/predictions',
+        actionUrl: '/dashboard/bmtc/forecasts',
       },
       {
         type: 'INFO',
         priority: 'LOW',
         title: 'System Update',
         message: 'Analytics dashboard is now available',
-        actionUrl: '/dashboard/analytics',
+        actionUrl: '/dashboard/nearby',
       },
     ];
 

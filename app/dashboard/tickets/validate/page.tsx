@@ -1,19 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AlertCircle, CheckCircle2, ScanLine, Ticket as TicketIcon } from 'lucide-react';
 import Navbar from '@/components/dashboard/Navbar';
 import Sidebar from '@/components/dashboard/Sidebar';
 import PageHeader from '@/components/dashboard/PageHeader';
 import { Ticket } from '@/types/ticket';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function ValidateTicketsPage() {
+  const { currentUser, loading } = useAuth();
+  const router = useRouter();
   const [ticketNumber, setTicketNumber] = useState('');
   const [qrPayload, setQrPayload] = useState('');
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [message, setMessage] = useState('');
   const [valid, setValid] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
+
+  useEffect(() => { if (!loading && currentUser?.role !== 'admin') router.replace('/dashboard'); }, [currentUser, loading, router]);
+  if (loading || currentUser?.role !== 'admin') return <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-600">Checking staff access…</div>;
 
   const validate = async () => {
     if (!ticketNumber.trim() && !qrPayload.trim()) {

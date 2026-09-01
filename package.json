@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "node --import ./scripts/node-userinfo-fallback.mjs --import tsx server.ts --production",
     "lint": "eslint",
-    "test": "node --experimental-strip-types scripts/test-ticketing.ts && node --experimental-strip-types scripts/test-phase7b-scenarios.ts && node --experimental-strip-types scripts/test-phase7c.ts && node --experimental-strip-types scripts/test-phase7d.ts && node --experimental-strip-types scripts/test-phase7e.ts && node --experimental-strip-types scripts/test-phase7e1.ts",
+    "test": "node --experimental-strip-types scripts/test-ticketing.ts && node --experimental-strip-types scripts/test-version1-scope.ts && node --experimental-strip-types scripts/test-phase7b-scenarios.ts && node --experimental-strip-types scripts/test-phase7c.ts && node --experimental-strip-types scripts/test-phase7d.ts && node --experimental-strip-types scripts/test-phase7e.ts && node --experimental-strip-types scripts/test-phase7e1.ts",
+    "test:version1": "node --experimental-strip-types scripts/test-version1-scope.ts",
     "test:phase7b": "node --experimental-strip-types scripts/test-phase7b-scenarios.ts",
     "test:phase7c": "node --experimental-strip-types scripts/test-phase7c.ts",
     "test:phase7d": "node --experimental-strip-types scripts/test-phase7d.ts",
@@ -17,8 +18,7 @@
     "transit:readiness": "node --import ./scripts/node-userinfo-fallback.mjs --import tsx scripts/check-live-transit-readiness.ts",
     "transit:verify-live": "node --import ./scripts/node-userinfo-fallback.mjs --import tsx scripts/verify-live-transit.ts",
     "test:moovit-provider": "node --import ./scripts/node-userinfo-fallback.mjs --import tsx scripts/test-moovit-provider.ts",
-    "import:bmtc-gtfs": "node --import ./scripts/node-userinfo-fallback.mjs --import tsx scripts/import-bmtc-gtfs.ts",
-    "seed:bengaluru": "node --import ./scripts/node-userinfo-fallback.mjs --import tsx scripts/seed-bengaluru-data.ts"
+    "import:bmtc-gtfs": "node --import ./scripts/node-userinfo-fallback.mjs --import tsx scripts/import-bmtc-gtfs.ts"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
@@ -38,9 +38,7 @@
     "react-leaflet": "^5.0.0",
     "recharts": "^3.10.1",
     "socket.io": "^4.8.3",
-    "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.6.0",
-    "twilio": "^5.13.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -57,7 +55,5 @@
     "tsx": "^4.19.2",
     "typescript": "^5"
   },
-  "optionalDependencies": {
-    "@types/twilio": "^4.0.0"
-  }
+  "optionalDependencies": {}
 }

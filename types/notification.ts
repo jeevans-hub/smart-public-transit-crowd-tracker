@@ -10,7 +10,7 @@ export interface Notification {
   timestamp: Date;
   read: boolean;
   actionUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface NotificationState {

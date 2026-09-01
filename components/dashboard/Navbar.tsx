@@ -1,24 +1,21 @@
 'use client';
 
-import { Bell, Search, LogOut, User, ChevronDown, Settings, UserCircle } from 'lucide-react';
+import { Bell, LogOut, User, ChevronDown, Settings, UserCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationPanel } from './NotificationPanel';
-import { useLanguage } from '@/contexts/LanguageProvider';
 import { useState, useRef, useEffect } from 'react';
 
 export default function Navbar() {
   const { logout, currentUser } = useAuth();
   const router = useRouter();
-  const { t } = useLanguage();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const {
     notifications,
     unreadCount,
     isOpen,
-    addNotification,
     markAsRead,
     markAllAsRead,
     deleteNotification,
@@ -58,16 +55,8 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="flex-1 max-w-xl mx-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search stations, vehicles, routes..."
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            />
-          </div>
+        <div className="hidden flex-1 px-8 text-center text-sm text-gray-500 md:block">
+          BMTC routes, nearby stops, crowd forecasts, and digital tickets
         </div>
 
         {/* Right Side Actions */}
@@ -93,7 +82,7 @@ export default function Navbar() {
             >
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900">{currentUser?.username || 'User'}</p>
-                <p className="text-xs text-gray-500">{currentUser?.role || 'Administrator'}</p>
+                <p className="text-xs capitalize text-gray-500">{currentUser?.role || 'user'}</p>
               </div>
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center">
                 <User className="w-5 h-5 text-white" />
@@ -114,7 +103,7 @@ export default function Navbar() {
                   className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                 >
                   <UserCircle size={18} />
-                  <span>{t('profile')}</span>
+                  <span>Profile</span>
                 </button>
                 <button
                   onClick={() => {
@@ -124,7 +113,7 @@ export default function Navbar() {
                   className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                 >
                   <Settings size={18} />
-                  <span>{t('settings')}</span>
+                  <span>Settings</span>
                 </button>
                 <div className="border-t border-gray-200 my-2" />
                 <button
@@ -135,7 +124,7 @@ export default function Navbar() {
                   className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <LogOut size={18} />
-                  <span>{t('logout')}</span>
+                  <span>Log out</span>
                 </button>
               </div>
             )}

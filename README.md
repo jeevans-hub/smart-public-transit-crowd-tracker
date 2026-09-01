@@ -1,180 +1,147 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Smart Public Transit Crowd Tracker
 
-## Getting Started
+Smart Public Transit Crowd Tracker is a BMTC-focused transit application providing route and nearby-stop information, crowd forecasts, destination-compatible bus recommendations, secure digital QR tickets, in-app alerts, and a provider architecture capable of supporting authorized real-time transit feeds.
 
-First, run the development server:
+## Version 1.0 scope
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The main demonstration journey is:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`Dashboard → BMTC Tracking → Nearby Stops → Crowd Forecasts → Digital Tickets`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Version 1.0 includes:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- A small dashboard overview rather than a second analytics product.
+- BMTC route, stop, bus, and arrival views based on normalized transit data.
+- Nearby-stop discovery and destination-compatible bus recommendations.
+- Crowd estimates with confidence, source, and rush-hour context.
+- Secure signed QR tickets with `ACTIVE`, `USED`, `EXPIRED`, and `CANCELLED` lifecycle rules.
+- A separate ticket-history screen.
+- Admin-only ticket validation and provider diagnostics.
+- In-app alerts and a Socket.IO channel for BMTC updates.
+- GTFS static, GTFS-Realtime, fixture, and optional Moovit provider adapters.
+- A live-feed reliability gate, shadow mode, fallback behavior, and diagnostics.
+
+## Demo data versus live data
+
+No legitimate, authorized real BMTC feed or Moovit account credentials are included in this repository. The default provider mode is `DEMO`, using deterministic Bengaluru sample data. Real BMTC tracking is therefore still pending authorized feed access and successful real-world validation.
+
+The interface and provider-status API must not label data as live merely because a build succeeds or an endpoint responds. A configured provider must prove feed identity, Bengaluru geography, mapping quality, freshness, and repeated stability. Shadow mode remains enabled until those checks pass.
+
+Only use an official feed, documented open-data endpoint, or permitted third-party provider. Do not use reverse-engineered application endpoints or unofficial scraper feeds.
+
+## Main routes
+
+Passenger routes:
+
+- `/dashboard`
+- `/dashboard/bmtc`
+- `/dashboard/bmtc/nearby`
+- `/dashboard/bmtc/forecasts`
+- `/dashboard/bmtc/routes/[routeNumber]`
+- `/dashboard/bmtc/vehicles/[vehicleId]`
+- `/dashboard/tickets`
+- `/dashboard/tickets/history`
+- `/dashboard/profile`
+- `/dashboard/settings`
+
+Admin-only routes:
+
+- `/dashboard/tickets/validate`
+- `/dashboard/bmtc/diagnostics`
+
+The matching validation and diagnostics APIs also enforce the admin role on the server. Hiding a navigation item is not treated as authorization.
 
 ## Digital ticketing
 
-The project includes a demo-ready digital ticket workflow at `/dashboard/tickets`:
+Passengers select a BMTC route and journey, then generate an active ticket containing a signed QR payload. The project does not process payments; fares are demo values.
 
-1. Select a route, journey, and passenger count.
-2. Issue an active ticket with a signed, scannable QR code.
-3. Validate the ticket at `/dashboard/tickets/validate`.
-4. A successful validation marks it as `USED`; expired and cancelled tickets are rejected.
+The validation workflow verifies the signature and lifecycle before marking an `ACTIVE` ticket as `USED`. It rejects tampered, expired, cancelled, and previously used tickets. Tickets use MongoDB when available and an in-memory development fallback when the database is unavailable.
 
-Tickets are stored in MongoDB when available. If MongoDB is unreachable, the development demo uses in-memory storage. Payment processing is intentionally not included.
+## BMTC tracking and crowd recommendations
 
-## BMTC transit module
+The BMTC module exposes routes, nearby stops, arrivals, vehicle details, crowd forecasts, destination-aware recommendations, alerts, provider status, and route intelligence. Recommendations exclude wrong-direction and destination-incompatible buses before comparing wait time, crowd, delay, confidence, and route fit.
 
-The BMTC dashboard is available at `/dashboard/bmtc`, with nearby stops at `/dashboard/bmtc/nearby`. It currently uses deterministic Bengaluru demo data and labels it clearly in the interface. No legitimate real BMTC feed is configured in this repository. **Real BMTC feed configuration is pending.**
+Unknown exact passenger counts remain unknown. When live occupancy is unavailable, crowd levels are estimates and are labelled with their source and confidence.
 
-Phase 7C adds a server-side GTFS static and GTFS-Realtime provider without changing the Phase 7A or 7B frontend contracts. One ingestion loop fetches the upstream feed, normalizes it, rejects stale or duplicate updates, updates the in-memory cache and MongoDB in batches, and emits updates through the existing Socket.IO server. Browser clients never receive provider credentials and never poll the external provider directly.
+## Provider architecture
 
-Copy `.env.example` to `.env.local` and configure an approved, documented feed:
+Copy `.env.example` to `.env.local`. The safe default is:
 
 ```env
-BMTC_REALTIME_ENABLED=true
+BMTC_REALTIME_ENABLED=false
 BMTC_PROVIDER_TYPE=GTFS_RT
-BMTC_VEHICLE_POSITIONS_URL=
-BMTC_TRIP_UPDATES_URL=
-BMTC_ALERTS_URL=
-BMTC_GTFS_STATIC_URL=
-BMTC_API_KEY=
-BMTC_API_KEY_HEADER=x-api-key
-BMTC_FEED_SOURCE_NAME=
-BMTC_FEED_TERMS_URL=
-BMTC_REFRESH_INTERVAL_MS=30000
-BMTC_STALE_AFTER_SECONDS=120
-BMTC_REQUEST_TIMEOUT_MS=10000
+BMTC_LIVE_SHADOW_MODE=true
+MOOVIT_ENABLED=false
 ```
 
-`BMTC_FEED_SOURCE_NAME` and `BMTC_FEED_TERMS_URL` are required provenance fields. Use only an official feed, documented open-data endpoint, or permitted third-party provider. Do not use reverse-engineered app endpoints or unofficial scraper feeds. Configuration alone does not activate the live badge: the provider must successfully decode the feed and return at least one fresh vehicle update.
+The server supports configured GTFS static and GTFS-Realtime feeds. Moovit support requires legitimate account credentials plus the account-specific Bengaluru metro/agency context. Never guess those identifiers. Browser clients do not receive provider secrets or call upstream providers directly.
 
-### Optional Moovit provider
-
-Phase 7D adds Moovit as an optional server-side provider through Moovit's documented `RtGtfs` and `SaRtGtfs` GTFS-Realtime services. Moovit access is not bundled with this project. Obtain the API key, any required HMAC secret, metro ID, agency ID, usage limits, and Bengaluru/BMTC account entitlement directly from Moovit. Never guess a metro or agency ID.
-
-Moovit remains disabled in `.env.example`. After authorized access has been supplied, select it explicitly:
-
-```env
-BMTC_REALTIME_ENABLED=true
-BMTC_PROVIDER_TYPE=MOOVIT
-
-MOOVIT_ENABLED=true
-MOOVIT_API_BASE_URL=
-MOOVIT_API_KEY=
-MOOVIT_API_SECRET=
-MOOVIT_AUTH_MODE=API_KEY
-MOOVIT_HMAC_ENCODING=hex
-MOOVIT_METRO_ID=
-MOOVIT_AGENCY_ID=
-MOOVIT_TRANSIT_TYPE=BUS
-MOOVIT_GTFS_STATIC_URL=
-MOOVIT_REQUEST_TIMEOUT_MS=10000
-MOOVIT_REFRESH_INTERVAL_MS=30000
-MOOVIT_STALE_AFTER_SECONDS=120
-```
-
-When `MOOVIT_API_BASE_URL` is blank, the provider uses Moovit's documented production API base. Use `MOOVIT_AUTH_MODE=HMAC` only when required for the account; this makes `MOOVIT_API_SECRET` mandatory. All credentials remain server-side and are excluded from provider-status responses and logs. `MOOVIT_GTFS_STATIC_URL` must point to compatible, legitimately obtained GTFS static data so real-time route and trip IDs can be matched to stops and agency metadata.
-
-A successful HTTP response does not by itself enable `LIVE BMTC DATA`. The provider requires fresh bus positions, compatible route IDs, a broad Bengaluru geographic sanity check, and account-provided agency metadata matching BMTC. Fresh data that cannot prove BMTC identity is labelled `LIVE TRANSIT DATA — UNVERIFIED`; a wrong-region, stale, unauthorized, or failing feed activates demo fallback. Upstream `Cache-Control`, `ETag`, `Retry-After`, timeouts, and exponential backoff are respected.
-
-Moovit occupancy values use the existing crowd-level mapper. Exact passenger counts remain `null`, and Phase 7B predictions continue when live occupancy is absent. Existing ETA, crowd, recommendation, MongoDB, Socket.IO, and authenticated dashboard API paths are reused without a client-side Moovit request loop.
-
-Run the safe configuration diagnostic without starting the dashboard:
-
-```bash
-npm run test:moovit-provider
-```
-
-It reports only connectivity, authentication status, configured-ID presence, entity counts, freshness, and verification status. It never prints credentials or authorization headers.
-
-The provider automatically falls back to demo data when real mode is disabled, configuration is incomplete, requests fail, the feed is empty, or all vehicle updates are stale. The authenticated `GET /api/bmtc/provider-status` endpoint and dashboard health card expose these states:
-
-- `LIVE`: a configured real feed returned fresh vehicle data.
-- `DEGRADED`: the configured feed failed or became stale; safe fallback is active.
-- `OFFLINE`: the configured feed failed at least three consecutive health checks.
-- `DEMO`: real mode is disabled, invalid, or fixture mode is selected.
-
-Vehicles older than `BMTC_STALE_AFTER_SECONDS` (120 seconds by default) are marked non-live and excluded from `/api/bmtc/vehicles` unless `includeStale=true` is supplied. HTTP requests have a timeout, `429` retry hints are respected, and repeated failures use exponential backoff.
-
-GTFS-Realtime supports `VehiclePosition`, `TripUpdate`, and `Alert` messages. ETA priority is live TripUpdate, GPS estimate, historical estimate, scheduled time, then demo fallback. The current implementation uses live TripUpdate and GPS values when supplied and preserves the existing fallbacks. GPS-derived ETAs are never labeled as TripUpdate ETAs.
-
-If `occupancy_status` or `occupancy_percentage` is supplied, it maps to the existing `LOW`, `MEDIUM`, `HIGH`, and `VERY_HIGH` crowd levels with `LIVE_OCCUPANCY` as the source. Exact passenger counts remain `null` unless a valid source explicitly supplies an exact count. When occupancy is missing, Phase 7B crowd intelligence continues to estimate a level and clearly labels it as predicted.
-
-To import a configured GTFS static archive into MongoDB with idempotent upserts:
-
-```bash
-npm run import:bmtc-gtfs
-```
-
-You can also pass a local ZIP file:
-
-```bash
-npm run import:bmtc-gtfs -- C:\path\to\feed.zip
-```
-
-For local integration testing without a network provider, set `BMTC_REALTIME_ENABLED=true` and `BMTC_PROVIDER_TYPE=FIXTURE`. Fixture mode exercises normalized GTFS data but always remains visibly labeled as demo data.
-
-The Phase 7A APIs require an authenticated dashboard session and expose nearby stops, routes, vehicle positions, vehicle details, stop arrivals, recommendations, crowd predictions, alerts, and provider status.
-
-### Phase 7E live activation and validation
-
-Phase 7E places a reliability gate between any configured provider and users. A successful HTTP response is not sufficient. The feed must authenticate, prove BMTC identity and Bengaluru geography, map realtime entities to static trips/routes/stops, meet freshness and position-quality thresholds, and remain stable for the configured number of consecutive cycles.
-
-Live shadow mode is enabled by default. In shadow mode the provider can be fetched and measured, but the normal dashboard and Socket.IO vehicle, arrival, crowd, and alert streams continue using deterministic demo data. The authenticated diagnostics page is available at `/dashboard/bmtc/diagnostics`; it never exposes keys, authorization headers, secrets, or provider endpoint URLs.
+Useful provider checks:
 
 ```bash
 npm run transit:readiness
 npm run transit:verify-live
-npm run test:phase7e
+npm run test:moovit-provider
 ```
 
-The readiness command only examines configuration presence. The verification command performs at most one controlled feed cycle and stops. Keep `BMTC_LIVE_SHADOW_MODE=true` until an authorized account with confirmed Bengaluru/BMTC access has passed the manual checklist in `docs/PHASE_7E_LIVE_VALIDATION_CHECKLIST.md`. Do not disable shadow mode merely because the build passes.
+`transit:verify-live` performs at most one controlled feed cycle. Keep shadow mode enabled until the manual checks in `docs/PHASE_7E_LIVE_VALIDATION_CHECKLIST.md` pass with authorized data.
 
-ETA accuracy, crowd agreement, and recommendation quality are reported only when real validation samples exist. With no samples, diagnostics explicitly show those measures as unavailable instead of claiming accuracy. Phase 7 ends here until authorized real-world validation is possible.
+## Setup
 
-### Phase 7B crowd intelligence
+Requirements:
 
-The BMTC module now compares only direction- and destination-compatible buses. Its deterministic recommendation score combines ETA (35%), predicted crowd (35%), delay (15%), crowd confidence (10%), and route fit (5%). Unknown passenger counts remain `null`.
+- Node.js compatible with Next.js 16
+- npm
+- MongoDB for persistent users and tickets
 
-Additional authenticated endpoints include:
+Install and run:
 
-- `GET /api/bmtc/recommendations`
-- `GET /api/bmtc/crowd-predictions`
-- `GET /api/bmtc/routes/[routeNumber]/intelligence`
-- `GET|POST /api/bmtc/alerts`
-- `DELETE /api/bmtc/alerts/[id]`
+```bash
+npm install
+npm run dev
+```
 
-Route intelligence pages show an eight-point crowd trend, rush-hour estimate, active vehicle crowd levels, and the least-crowded service window. Results remain visibly marked as demo data unless the real provider passes its freshness checks.
+Open `http://localhost:3000`.
+
+Required local environment values:
+
+```env
+MONGODB_URI=mongodb://127.0.0.1:27017/smart-public-transit
+JWT_SECRET=replace-with-a-long-random-secret
+NEXT_PUBLIC_APP_NAME=Smart Public Transit Crowd Tracker
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+See `.env.example` for the optional authorized-provider settings and safety thresholds.
 
 ## Verification
 
 ```bash
 npm test
+npm run lint
+npm audit
 npm run build
 ```
 
-`npm test` covers QR tamper rejection, expiry, duplicate-use rules, cancellation eligibility, crowd-calculation boundaries, destination compatibility, wrong-direction rejection, recommendation weighting, deterministic crowd/rush predictions, alert cooldown behavior, provider fallback, GTFS ZIP and protobuf parsing, normalization, occupancy mapping, TripUpdate ETA, stale vehicles, duplicate updates, provider health recovery, Moovit configuration and HMAC signing, documented endpoint construction, service alerts, cache directives, rate limits, timeouts, wrong-region rejection, and BMTC verification states.
+Focused test scripts cover ticket QR tampering, lifecycle rules, duplicate scans, role access, destination compatibility, wrong-direction rejection, no-alternative behavior, crowd boundaries, provider fallback, GTFS parsing and normalization, Moovit request signing/configuration, stale and duplicate updates, verification states, and the Phase 7E reliability gate.
 
-## Learn More
+## Deliberately outside Version 1.0
 
-To learn more about Next.js, take a look at the following resources:
+These ideas are future scope, not partially advertised features:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Real payment, refunds, subscriptions, and monthly passes.
+- SMS delivery and phone verification.
+- Passenger-submitted crowdsourcing.
+- Gamification, points, levels, coins, and leaderboards.
+- Generic multi-city digital twins and control centers.
+- Fleet maintenance prediction, cost optimization, and operations management.
+- Generic agency, station, route, and vehicle CRUD dashboards.
+- Generic analytics and unrelated prediction dashboards.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Current limitations
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Real BMTC tracking remains pending authorized live access and field validation.
+- Demo fares are not transactions.
+- Crowd forecasts are estimates unless explicitly backed by verified live occupancy.
+- Exact passenger counts are not invented when the provider does not supply them.
+- The in-memory ticket fallback is for local demonstration and is not persistent.

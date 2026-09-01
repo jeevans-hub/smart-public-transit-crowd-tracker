@@ -1,24 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Ticket from '@/models/Ticket';
-import { verifyToken } from '@/utils/helpers';
-import { COOKIE_CONFIG } from '@/utils/constants';
 import { findMockTicket, updateMockTicket } from '@/lib/ticketStore';
 import { verifyTicketQrPayload } from '@/lib/ticketSecurity';
 import { validateTicketSchema } from '@/lib/ticketSchemas';
 import { canUseTicket, resolveTicketStatus } from '@/utils/ticketLifecycle';
-
-function authenticated(request: NextRequest) {
-  const token = request.cookies.get(COOKIE_CONFIG.name)?.value;
-  return token ? verifyToken(token) : null;
-}
+import { authorizeRequest, TICKET_VALIDATION_ROLES } from '@/utils/authorization';
 
 function result(ticket: Record<string, unknown>, valid: boolean, message: string, status = 200) {
   return NextResponse.json({ success: valid, valid, message, data: ticket }, { status });
 }
 
 export async function POST(request: NextRequest) {
-  if (!authenticated(request)) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const access = await authorizeRequest(request, TICKET_VALIDATION_ROLES);
+  if (!access.authenticated) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  if (!access.authorized) return NextResponse.json({ success: false, error: 'Staff or administrator access is required' }, { status: 403 });
 
   try {
     const parsed = validateTicketSchema.safeParse(await request.json());

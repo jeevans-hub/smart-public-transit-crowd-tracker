@@ -25,8 +25,8 @@ export default function LoginForm({ onClose, onRegisterClick }: LoginFormProps) 
     try {
       await login(email, password);
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export default function LoginForm({ onClose, onRegisterClick }: LoginFormProps) 
 
         <div className="mt-6 text-center">
           <p className="text-blue-200">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <button
               onClick={onRegisterClick}
               className="text-blue-400 hover:text-blue-300 font-medium focus:outline-none focus:underline"

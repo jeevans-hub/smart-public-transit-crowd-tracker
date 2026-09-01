@@ -8,13 +8,6 @@ interface User {
   email: string;
   avatar?: string;
   role: string;
-  level: number;
-  experience: number;
-  coins: number;
-  phoneNumber?: string;
-  phoneVerified?: boolean;
-  smsAlertsEnabled?: boolean;
-  smsAlertThreshold?: string;
 }
 
 interface AuthContextType {
@@ -53,7 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    refresh();
+    const timeout = window.setTimeout(() => void refresh(), 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   const login = async (email: string, password: string) => {

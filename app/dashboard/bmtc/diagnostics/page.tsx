@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { Activity, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import LoadingSpinner from '@/components/dashboard/LoadingSpinner';
 import Navbar from '@/components/dashboard/Navbar';
 import PageHeader from '@/components/dashboard/PageHeader';
 import Sidebar from '@/components/dashboard/Sidebar';
 import TransitDataSourceBadge from '@/components/bmtc/TransitDataSourceBadge';
 import type { TransitFeedHealth } from '@/types/transit';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DiagnosticsResponse {
   health: TransitFeedHealth;
@@ -21,15 +23,20 @@ interface DiagnosticsResponse {
 const value = (input: number | null | undefined, suffix = '') => input === null || input === undefined ? 'Unavailable' : `${input}${suffix}`;
 
 export default function BmtcDiagnosticsPage() {
+  const { currentUser, loading } = useAuth();
+  const router = useRouter();
   const [data, setData] = useState<DiagnosticsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
+    if (loading) return;
+    if (currentUser?.role !== 'admin') { router.replace('/dashboard'); return; }
     void fetch('/api/bmtc/diagnostics').then(async (response) => {
       const body = await response.json();
       if (!response.ok || !body.success) throw new Error(body.error?.message || 'Diagnostics are unavailable');
       setData(body.data);
     }).catch((reason) => setError(reason instanceof Error ? reason.message : 'Diagnostics are unavailable'));
-  }, []);
+  }, [currentUser, loading, router]);
+  if (loading || currentUser?.role !== 'admin') return <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-600">Checking administrator access…</div>;
   const health = data?.health;
   return <div className="min-h-screen bg-gray-50"><Sidebar /><div className="lg:ml-72"><Navbar /><main className="space-y-6 p-6">
     <PageHeader title="BMTC Live Feed Diagnostics" subtitle="Phase 7E activation, identity, freshness, and quality gates" action={health ? <TransitDataSourceBadge source={health.realFeedVerified ? 'BMTC_REALTIME' : 'DEMO'} status={health.status} provider={health.provider} verificationStatus={health.verificationStatus} fallbackActive={health.fallbackActive} activationState={health.activation?.state} /> : <TransitDataSourceBadge />} />
